@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+const authMiddleware = require("../middleware/authMiddleware");
 const {
   register,
   login,
@@ -11,8 +12,10 @@ const {
 
 router.post("/register", register);
 router.post("/login", login);
-router.get("/profile", getProfile);
-router.put("/profile", updateProfile);
-router.delete("/profile", deleteProfile);
+
+// Protected routes
+router.get("/profile", authMiddleware, getProfile);
+router.put("/profile", authMiddleware, updateProfile);
+router.delete("/profile", authMiddleware, deleteProfile);
 
 module.exports = router;
