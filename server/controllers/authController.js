@@ -163,7 +163,7 @@ const getProfile = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT user_id, full_name, email, phone, role,
-              profile_image, is_verified, created_at
+              profile_image, is_verified
        FROM users
        WHERE user_id = $1`,
       [req.user.user_id],
@@ -176,24 +176,62 @@ const getProfile = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       user: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get Profile Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: "Internal server error",
     });
   }
 };
 
 const updateProfile = async (req, res) => {
-  res.json({
-    message: "Update Profile API",
-  });
+  try {
+    const { full_name, phone, profile_image } = req.body;
+    const userId = req.user.user_id;
+    const role = req.user.role;
+    await pool.query(
+      `UPDATE users
+   SET full_name=$1,
+       phone=$2,
+       profile_image=$3,
+       updated_at=NOW()
+   WHERE user_id=$4`,
+      [full_name, phone, profile_image, userId],
+    );
+    if (role === "ADMIN") {
+    } else if (role === "HOSPITAL") {
+    } else if (role === "DONOR") {
+      const { blood_group, gender, dob, weight, city, last_donation_date } =
+        req.body;
+      await pool.query(
+        `UPDATE donors
+   SET blood_group=$1,
+       gender=$2,
+       dob=$3,
+       weight=$4,
+       city=$5,
+       last_donation_date=$6
+   WHERE user_id=$7`,
+        [blood_group, gender, dob, weight, city, last_donation_date, userId],
+      );
+      res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+      });
+    }
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
 
 const deleteProfile = async (req, res) => {

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const pool = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const bloodRequestRoutes = require("./routes/bloodRequestRoutes");
 dotenv.config();
 
 const app = express();
@@ -28,6 +29,7 @@ app.get("/", (req, res) => {
   });
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/blood_requests", bloodRequestRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
