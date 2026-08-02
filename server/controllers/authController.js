@@ -7,8 +7,15 @@ const register = async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { full_name, email, phone, password, role } = req.body;
-
+    const {
+      full_name,
+      email,
+      phone,
+      password,
+      role,
+      hospital_name,
+      registration_number,
+    } = req.body;
     if (!full_name || !email || !phone || !password || !role) {
       return res.status(400).json({
         success: false,
@@ -56,11 +63,21 @@ const register = async (req, res) => {
     if (userRole === "DONOR") {
       await client.query("INSERT INTO donors (user_id) VALUES ($1)", [userId]);
     }
-
     if (userRole === "HOSPITAL") {
-      await client.query("INSERT INTO hospitals (user_id) VALUES ($1)", [
-        userId,
-      ]);
+      if (!hospital_name || !registration_number) {
+        return res.status(400).json({
+          success: false,
+          message: "Hospital name and registration number are required",
+        });
+      }
+    }
+    if (userRole === "HOSPITAL") {
+      await client.query(
+        `INSERT INTO hospitals
+     (user_id, hospital_name, registration_number)
+     VALUES ($1, $2, $3)`,
+        [userId, hospital_name, registration_number],
+      );
     }
 
     if (userRole === "ADMIN") {
@@ -191,46 +208,131 @@ const getProfile = async (req, res) => {
 };
 
 const updateProfile = async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { full_name, phone, profile_image } = req.body;
     const userId = req.user.user_id;
     const role = req.user.role;
-    await pool.query(
+
+    await client.query("BEGIN");
+
+    // Update users table
+    const userResult = await client.query(
       `UPDATE users
-   SET full_name=$1,
-       phone=$2,
-       profile_image=$3,
-       updated_at=NOW()
-   WHERE user_id=$4`,
+       SET full_name = $1,
+           phone = $2,
+           profile_image = $3,
+           updated_at = NOW()
+       WHERE user_id = $4
+       RETURNING *`,
       [full_name, phone, profile_image, userId],
     );
-    if (role === "ADMIN") {
-    } else if (role === "HOSPITAL") {
-    } else if (role === "DONOR") {
-      const { blood_group, gender, dob, weight, city, last_donation_date } =
-        req.body;
-      await pool.query(
-        `UPDATE donors
-   SET blood_group=$1,
-       gender=$2,
-       dob=$3,
-       weight=$4,
-       city=$5,
-       last_donation_date=$6
-   WHERE user_id=$7`,
-        [blood_group, gender, dob, weight, city, last_donation_date, userId],
-      );
-      res.status(200).json({
-        success: true,
-        message: "Profile updated successfully",
+
+    if (userResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
     }
+
+    // Update donor details
+    if (role === "DONOR") {
+      const { blood_group, gender, dob, weight, city, last_donation_date } =
+        req.body;
+
+      await client.query(
+        `UPDATE donors
+         SET blood_group = $1,
+             gender = $2,
+             dob = $3,
+             weight = $4,
+             city = $5,
+             last_donation_date = $6
+         WHERE user_id = $7`,
+        [blood_group, gender, dob, weight, city, last_donation_date, userId],
+      );
+    }
+
+    // Update hospital details
+    else if (role === "HOSPITAL") {
+      const {
+        hospital_name,
+        registration_number,
+        contact_person,
+        phone,
+        email,
+        address,
+        city,
+        state,
+        pincode,
+        latitude,
+        longitude,
+      } = req.body;
+
+      const hospitalResult = await client.query(
+        `UPDATE hospitals
+     SET hospital_name = $1,
+         registration_number = $2,
+         contact_person = $3,
+         phone = $4,
+         email = $5,
+         address = $6,
+         city = $7,
+         state = $8,
+         pincode = $9,
+         latitude = $10,
+         longitude = $11
+     WHERE user_id = $12`,
+        [
+          hospital_name,
+          registration_number,
+          contact_person,
+          phone,
+          email,
+          address,
+          city,
+          state,
+          pincode,
+          latitude,
+          longitude,
+          userId,
+        ],
+      );
+
+      if (hospitalResult.rowCount === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(404).json({
+          success: false,
+          message: "Hospital profile not found",
+        });
+      }
+    }
+    // ADMIN
+    else if (role === "ADMIN") {
+      // Add admin-specific update here if needed
+    }
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+    });
   } catch (error) {
+    await client.query("ROLLBACK");
+
     console.error("Update Profile Error:", error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
     });
+  } finally {
+    client.release();
   }
 };
 

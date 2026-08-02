@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
   });
 });
 app.use("/api/auth", authRoutes);
-app.use("/api/blood_requests", bloodRequestRoutes);
+app.use("/api/blood-requests", bloodRequestRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
