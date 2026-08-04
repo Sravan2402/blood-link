@@ -215,6 +215,106 @@ const getBloodRequestById = async (req, res) => {
     });
   }
 };
+const respondToBloodRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { response_message } = req.body;
+
+    const userId = req.user.user_id;
+    const role = req.user.role;
+    console.log("User ID:", userId);
+    // 1. Check role
+    if (role !== "DONOR") {
+      return res.status(403).json({
+        success: false,
+        message: "Only donors can respond to blood requests.",
+      });
+    }
+
+    // 2. Get donor_id
+    const donorResult = await pool.query(
+      `SELECT donor_id
+       FROM donors
+       WHERE user_id = $1`,
+      [userId],
+    );
+
+    if (donorResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Donor profile not found.",
+      });
+    }
+
+    const donorId = donorResult.rows[0].donor_id;
+
+    // 3. Check request exists
+    const requestResult = await pool.query(
+      `SELECT *
+       FROM blood_requests
+       WHERE request_id = $1`,
+      [requestId],
+    );
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found.",
+      });
+    }
+
+    // 4. Check request status
+    if (requestResult.rows[0].status !== "OPEN") {
+      return res.status(400).json({
+        success: false,
+        message: "This blood request is no longer open.",
+      });
+    }
+
+    // 5. Check duplicate response
+    const existingResponse = await pool.query(
+      `SELECT response_id
+       FROM blood_request_responses
+       WHERE request_id = $1
+       AND donor_id = $2`,
+      [requestId, donorId],
+    );
+
+    if (existingResponse.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already responded to this request.",
+      });
+    }
+
+    // 6. Insert response
+    const responseResult = await pool.query(
+      `INSERT INTO blood_request_responses
+      (
+        request_id,
+        donor_id,
+        response_message,
+        status
+      )
+      VALUES ($1, $2, $3, 'PENDING')
+      RETURNING *`,
+      [requestId, donorId, response_message],
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Response submitted successfully.",
+      response: responseResult.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
 const updateBloodRequest = async (req, res) => {};
 const deleteBloodRequest = async (req, res) => {};
 module.exports = {
@@ -225,4 +325,5 @@ module.exports = {
   getBloodRequestById,
   updateBloodRequest,
   deleteBloodRequest,
+  respondToBloodRequest,
 };

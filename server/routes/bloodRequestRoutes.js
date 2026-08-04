@@ -10,6 +10,7 @@ const {
   deleteBloodRequest,
   getMyBloodRequests,
   getOpenBloodRequests,
+  respondToBloodRequest,
 } = require("../controllers/bloodRequestController.js");
 router.get("/test", (req, res) => {
   console.log("🔥 Blood request route is working");
@@ -24,6 +25,8 @@ router.post("/", authMiddleware, createBloodRequest);
 router.get("/my", authMiddleware, getMyBloodRequests);
 router.get("/", authMiddleware, getAllBloodRequests);
 router.get("/open", authMiddleware, getOpenBloodRequests);
+
+router.post("/:requestId/respond", authMiddleware, respondToBloodRequest);
 
 router.get("/:id", authMiddleware, getBloodRequestById);
 router.put("/:id", authMiddleware, updateBloodRequest);
