@@ -296,7 +296,7 @@ const respondToBloodRequest = async (req, res) => {
         response_message,
         status
       )
-      VALUES ($1, $2, $3, 'PENDING')
+      VALUES ($1, $2, $3, 'ACCEPTED_BY_DONOR')
       RETURNING *`,
       [requestId, donorId, response_message],
     );
@@ -315,15 +315,226 @@ const respondToBloodRequest = async (req, res) => {
     });
   }
 };
-const updateBloodRequest = async (req, res) => {};
-const deleteBloodRequest = async (req, res) => {};
+const getBloodRequestResponses = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user.user_id;
+    const role = req.user.role;
+    if (role !== "HOSPITAL") {
+      return res.status(403).json({
+        success: false,
+        message: "Only hospitals can view responses to their blood requests.",
+      });
+    }
+    const hospitalResult = await pool.query(
+      `select hospital_id from hospitals where user_id =$1`,
+      [userId],
+    );
+    if (hospitalResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital not found.",
+      });
+    }
+    const hospitalId = hospitalResult.rows[0].hospital_id;
+    const requestResult = await pool.query(
+      `select request_id from blood_requests where request_id=$1 and hospital_id=$2`,
+      [requestId, hospitalId],
+    );
+    if (requestResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found or does not belong to this hospital.",
+      });
+    }
+    const responsesResult = await pool.query(
+      `SELECT r.response_id,u.full_name,d.blood_group,u.email,u.phone,r.response_message,r.status,r.responded_at FROM blood_request_responses r
+      JOIN donors d
+      ON r.donor_id = d.donor_id
+      JOIN users u
+      ON d.user_id = u.user_id
+      WHERE r.request_id = $1
+      ORDER BY r.responded_at DESC;`,
+      [requestId],
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Blood request responses fetched successfully.",
+      count: responsesResult.rowCount,
+      responses: responsesResult.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+const bloodAccepted = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { responseId } = req.params;
+    const userId = req.user.user_id;
+    const role = req.user.role;
+
+    // 1. Check role
+    if (role !== "HOSPITAL") {
+      return res.status(403).json({
+        success: false,
+        message: "Only hospitals can accept blood requests.",
+      });
+    }
+
+    // 2. Get hospital_id
+    const hospitalResult = await client.query(
+      `SELECT hospital_id
+       FROM hospitals
+       WHERE user_id = $1`,
+      [userId],
+    );
+
+    if (hospitalResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital not found.",
+      });
+    }
+
+    const hospitalId = hospitalResult.rows[0].hospital_id;
+
+    // 3. Get response details
+    const responseResult = await client.query(
+      `SELECT *
+       FROM blood_request_responses
+       WHERE response_id = $1`,
+      [responseId],
+    );
+
+    if (responseResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Response not found.",
+      });
+    }
+
+    const response = responseResult.rows[0];
+
+    // 4. Check if already accepted
+    if (response.status !== "ACCEPTED_BY_DONOR") {
+      return res.status(400).json({
+        success: false,
+        message: "Donor has not accepted this request.",
+      });
+    }
+
+    // 5. Verify the request belongs to this hospital
+    const requestResult = await client.query(
+      `SELECT request_id, status
+   FROM blood_requests
+   WHERE request_id = $1
+   AND hospital_id = $2`,
+      [response.request_id, hospitalId],
+    );
+
+    if (requestResult.rowCount === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to accept this donor.",
+      });
+    }
+    const request = requestResult.rows[0];
+    await client.query("BEGIN");
+
+    if (request.status !== "OPEN") {
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        success: false,
+        message: "Blood request is already matched or closed.",
+      });
+    }
+    // ==========================
+    // Start Transaction
+    // ==========================
+
+    // 6. Accept selected donor
+    // Get selected donor details
+    // 6. Select donor
+    await client.query(
+      `UPDATE blood_request_responses
+   SET status = 'SELECTED_BY_HOSPITAL'
+   WHERE response_id = $1`,
+      [responseId],
+    );
+
+    // 7. Reject other donors
+    await client.query(
+      `UPDATE blood_request_responses
+   SET status = 'REJECTED_BY_HOSPITAL'
+   WHERE request_id = $1
+   AND response_id <> $2
+   AND status = 'ACCEPTED_BY_DONOR'`,
+      [response.request_id, responseId],
+    );
+
+    // 8. Update blood request
+    await client.query(
+      `UPDATE blood_requests
+   SET status = 'MATCHED'
+   WHERE request_id = $1`,
+      [response.request_id],
+    );
+
+    // 9. Get selected donor details
+    const donorDetails = await client.query(
+      `SELECT
+      r.response_id,
+      r.status,
+      r.responded_at,
+      u.full_name,
+      u.phone,
+      u.email,
+      d.blood_group
+   FROM blood_request_responses r
+   JOIN donors d
+     ON r.donor_id = d.donor_id
+   JOIN users u
+     ON d.user_id = u.user_id
+   WHERE r.response_id = $1`,
+      [responseId],
+    );
+
+    // 10. Commit
+    await client.query("COMMIT");
+
+    // 11. Return response
+    return res.status(200).json({
+      success: true,
+      message: "Donor selected successfully.",
+      data: donorDetails.rows[0],
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  } finally {
+    client.release();
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
   getAllBloodRequests,
   getMyBloodRequests,
   getBloodRequestById,
-  updateBloodRequest,
-  deleteBloodRequest,
   respondToBloodRequest,
+  getBloodRequestResponses,
+  bloodAccepted,
 };
