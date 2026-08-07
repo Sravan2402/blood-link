@@ -3,6 +3,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware.js");
 const {
+  completeBloodRequest,
   createBloodRequest,
   getAllBloodRequests,
   getBloodRequestById,
@@ -29,7 +30,7 @@ router.get("/open", authMiddleware, getOpenBloodRequests);
 router.post("/:requestId/respond", authMiddleware, respondToBloodRequest);
 router.get("/:requestId/responses", authMiddleware, getBloodRequestResponses);
 router.patch("/responses/:responseId/select", authMiddleware, bloodAccepted);
+router.patch("/:requestId/complete", authMiddleware, completeBloodRequest);
 
 router.get("/:id", authMiddleware, getBloodRequestById);
-
 module.exports = router;

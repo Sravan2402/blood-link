@@ -528,6 +528,72 @@ const bloodAccepted = async (req, res) => {
     client.release();
   }
 };
+const completeBloodRequest = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { requestId } = req.params;
+    const userId = req.user.user_id;
+    const role = req.user.role;
+    if (role !== "HOSPITAL") {
+      return res.status(403).json({
+        success: false,
+        message: "Only hospitals can complete blood requests.",
+      });
+    }
+    const hospitalResult = await pool.query(
+      `SELECT hospital_id FROM hospitals WHERE user_id=$1`,
+      [userId],
+    );
+    if (hospitalResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital not found.",
+      });
+    }
+    const hospitalId = hospitalResult.rows[0].hospital_id;
+    const requestResult = await pool.query(
+      `SELECT request_id,status FROM blood_requests WHERE request_id=$1 AND hospital_id=$2`,
+      [requestId, hospitalId],
+    );
+    if (requestResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found or does not belong to this hospital.",
+      });
+    }
+    const request = requestResult.rows[0];
+    if (request.status !== "MATCHED") {
+      return res.status(400).json({
+        success: false,
+        message: "Only matched blood requests can be completed.",
+      });
+    }
+    const completedRequest = await pool.query(
+      `UPDATE blood_requests
+   SET status = 'COMPLETED'
+   WHERE request_id = $1
+   RETURNING *`,
+      [requestId],
+    );
+    console.log("Completed Request:", completedRequest.rows[0]);
+    return res.status(200).json({
+      success: true,
+      message: "Blood request completed successfully.",
+      data: completedRequest.rows[0],
+    });
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  } finally {
+    client.release();
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
@@ -537,4 +603,5 @@ module.exports = {
   respondToBloodRequest,
   getBloodRequestResponses,
   bloodAccepted,
+  completeBloodRequest,
 };
