@@ -530,62 +530,143 @@ const bloodAccepted = async (req, res) => {
 };
 const completeBloodRequest = async (req, res) => {
   const client = await pool.connect();
+
   try {
-    await client.query("BEGIN");
     const { requestId } = req.params;
     const userId = req.user.user_id;
     const role = req.user.role;
+
+    // 1. Check role
     if (role !== "HOSPITAL") {
       return res.status(403).json({
         success: false,
         message: "Only hospitals can complete blood requests.",
       });
     }
-    const hospitalResult = await pool.query(
-      `SELECT hospital_id FROM hospitals WHERE user_id=$1`,
+
+    await client.query("BEGIN");
+
+    // 2. Get hospital_id
+    const hospitalResult = await client.query(
+      `SELECT hospital_id
+       FROM hospitals
+       WHERE user_id = $1`,
       [userId],
     );
+
     if (hospitalResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
       return res.status(404).json({
         success: false,
         message: "Hospital not found.",
       });
     }
+
     const hospitalId = hospitalResult.rows[0].hospital_id;
-    const requestResult = await pool.query(
-      `SELECT request_id,status FROM blood_requests WHERE request_id=$1 AND hospital_id=$2`,
+
+    // 3. Get request details
+    const requestResult = await client.query(
+      `SELECT
+          request_id,
+          hospital_id,
+          blood_group,
+          units_required,
+          status
+       FROM blood_requests
+       WHERE request_id = $1
+       AND hospital_id = $2`,
       [requestId, hospitalId],
     );
+
     if (requestResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
       return res.status(404).json({
         success: false,
         message: "Blood request not found or does not belong to this hospital.",
       });
     }
+
     const request = requestResult.rows[0];
+
+    // 4. Request must be MATCHED
     if (request.status !== "MATCHED") {
+      await client.query("ROLLBACK");
+
       return res.status(400).json({
         success: false,
         message: "Only matched blood requests can be completed.",
       });
     }
-    const completedRequest = await pool.query(
-      `UPDATE blood_requests
-   SET status = 'COMPLETED'
-   WHERE request_id = $1
-   RETURNING *`,
+
+    // 5. Get selected donor
+    const donorResult = await client.query(
+      `SELECT donor_id
+       FROM blood_request_responses
+       WHERE request_id = $1
+       AND status = 'SELECTED_BY_HOSPITAL'`,
       [requestId],
     );
-    console.log("Completed Request:", completedRequest.rows[0]);
+
+    if (donorResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        success: false,
+        message: "No donor has been selected for this request.",
+      });
+    }
+
+    const donorId = donorResult.rows[0].donor_id;
+
+    // 6. Update blood request
+    const completedRequest = await client.query(
+      `UPDATE blood_requests
+       SET status = 'COMPLETED'
+       WHERE request_id = $1
+       RETURNING *`,
+      [requestId],
+    );
+
+    // 7. Insert donation history
+    const donationResult = await client.query(
+      `INSERT INTO donation_history
+       (
+         request_id,
+         donor_id,
+         hospital_id,
+         blood_group,
+         units_donated
+       )
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        requestId,
+        donorId,
+        hospitalId,
+        request.blood_group,
+        request.units_required,
+      ],
+    );
+
+    // 8. Commit
+    await client.query("COMMIT");
+
+    // 9. Response
     return res.status(200).json({
       success: true,
       message: "Blood request completed successfully.",
-      data: completedRequest.rows[0],
+      data: {
+        request: completedRequest.rows[0],
+        donation: donationResult.rows[0],
+      },
     });
-    await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
+
     console.error(error);
+
     return res.status(500).json({
       success: false,
       message: "Internal Server Error.",
