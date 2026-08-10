@@ -675,6 +675,75 @@ const completeBloodRequest = async (req, res) => {
     client.release();
   }
 };
+const donationHistory = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const role = req.user.role;
+
+    // 1. Check role
+    if (role !== "DONOR") {
+      return res.status(403).json({
+        success: false,
+        message: "Only donors can access their donation history.",
+      });
+    }
+
+    // 2. Get donor_id
+    const donorResult = await pool.query(
+      `SELECT donor_id
+       FROM donors
+       WHERE user_id = $1`,
+      [userId],
+    );
+
+    if (donorResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Donor profile not found.",
+      });
+    }
+
+    const donorId = donorResult.rows[0].donor_id;
+
+    // 3. Get donation history
+    const historyResult = await pool.query(
+      `SELECT
+          dh.donation_id,
+          dh.request_id,
+          dh.hospital_id,
+          h.hospital_name,
+          dh.blood_group,
+          dh.units_donated,
+          dh.donated_at,
+          dh.remarks,
+          br.patient_name,
+          br.city,
+          br.hospital_address
+       FROM donation_history dh
+       JOIN blood_requests br
+         ON dh.request_id = br.request_id
+       JOIN hospitals h
+         ON dh.hospital_id = h.hospital_id
+       WHERE dh.donor_id = $1
+       ORDER BY dh.donated_at DESC`,
+      [donorId],
+    );
+
+    // 4. Return history
+    return res.status(200).json({
+      success: true,
+      count: historyResult.rowCount,
+      donations: historyResult.rows,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
@@ -685,4 +754,5 @@ module.exports = {
   getBloodRequestResponses,
   bloodAccepted,
   completeBloodRequest,
+  donationHistory,
 };
