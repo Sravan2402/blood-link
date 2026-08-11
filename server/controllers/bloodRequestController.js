@@ -744,6 +744,69 @@ const donationHistory = async (req, res) => {
     });
   }
 };
+const hospitalDonationHistory = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const role = req.user.role;
+
+    if (role !== "HOSPITAL") {
+      return res.status(403).json({
+        success: false,
+        message: "Only hospitals can access their donation history.",
+      });
+    }
+    const hospitalResult = await pool.query(
+      `SELECT hospital_id from hospitals where user_id =$1`,
+      [userId],
+    );
+    if (hospitalResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital not found.",
+      });
+    }
+    const hospitalId = hospitalResult.rows[0].hospital_id;
+    const historyResult = await pool.query(
+      `SELECT
+          dh.donation_id,
+          dh.request_id,
+          dh.donor_id,
+          u.full_name AS donor_name,
+          u.phone AS donor_phone,
+          u.email AS donor_email,
+          dh.blood_group,
+          dh.units_donated,
+          dh.donated_at,
+          dh.remarks,
+          br.patient_name,
+          br.patient_age,
+          br.patient_gender,
+          br.city,
+          br.hospital_address
+       FROM donation_history dh
+       JOIN donors d
+         ON dh.donor_id = d.donor_id
+       JOIN users u
+         ON d.user_id = u.user_id
+       JOIN blood_requests br
+         ON dh.request_id = br.request_id
+       WHERE dh.hospital_id = $1
+       ORDER BY dh.donated_at DESC`,
+      [hospitalId],
+    );
+    return res.status(200).json({
+      success: true,
+      count: historyResult.rowCount,
+      donations: historyResult.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
@@ -755,4 +818,5 @@ module.exports = {
   bloodAccepted,
   completeBloodRequest,
   donationHistory,
+  hospitalDonationHistory,
 };
