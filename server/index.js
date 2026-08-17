@@ -4,6 +4,7 @@ const cors = require("cors");
 const pool = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const bloodRequestRoutes = require("./routes/bloodRequestRoutes");
+const dashboardRequest = require("./routes/dashboardRequest");
 dotenv.config();
 
 const app = express();
@@ -30,6 +31,7 @@ app.get("/", (req, res) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/blood-requests", bloodRequestRoutes);
+app.use("/api/dashboard", dashboardRequest);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
