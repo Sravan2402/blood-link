@@ -294,8 +294,132 @@ const adminDashboard = async (req, res) => {
     });
   }
 };
+const availability_donor = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const role = req.user.role;
+    const { available } = req.body;
+
+    // 1. Check role
+    if (role !== "DONOR") {
+      return res.status(403).json({
+        success: false,
+        message: "Only donors can update availability.",
+      });
+    }
+
+    // 2. Validate input
+    if (typeof available !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "available must be true or false.",
+      });
+    }
+
+    // 3. Update availability
+    const result = await pool.query(
+      `UPDATE donors
+       SET available_for_requests = $1
+       WHERE user_id = $2
+       RETURNING donor_id, available_for_requests`,
+      [available, userId],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Donor profile not found.",
+      });
+    }
+
+    // 4. Response
+    return res.status(200).json({
+      success: true,
+      message: "Availability updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+const location_update = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const role = req.user.role;
+
+    const { latitude, longitude } = req.body;
+
+    // 1. Check role
+    if (role !== "DONOR") {
+      return res.status(403).json({
+        success: false,
+        message: "Only donors can update location.",
+      });
+    }
+
+    // 2. Check data type
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude must be numbers.",
+      });
+    }
+
+    // 3. Check valid GPS range
+    if (
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid latitude or longitude.",
+      });
+    }
+
+    // 4. Update donor location
+    const result = await pool.query(
+      `UPDATE donors
+       SET latitude = $1,
+           longitude = $2
+       WHERE user_id = $3
+       RETURNING donor_id, latitude, longitude`,
+      [latitude, longitude, userId],
+    );
+
+    // 5. Donor not found
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Donor profile not found.",
+      });
+    }
+
+    // 6. Response
+    return res.status(200).json({
+      success: true,
+      message: "Location updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
 module.exports = {
   donorDashboard,
   hospitalDashboard,
   adminDashboard,
+  availability_donor,
+  location_update,
 };
