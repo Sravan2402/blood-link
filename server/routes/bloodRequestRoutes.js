@@ -14,6 +14,7 @@ const {
   getBloodRequestResponses,
   donationHistory,
   hospitalDonationHistory,
+  nearbyDonors,
 } = require("../controllers/bloodRequestController.js");
 router.get("/test", (req, res) => {
   console.log("🔥 Blood request route is working");
@@ -35,6 +36,6 @@ router.patch("/responses/:responseId/select", authMiddleware, bloodAccepted);
 router.patch("/:requestId/complete", authMiddleware, completeBloodRequest);
 router.get("/donors/my-donations", authMiddleware, donationHistory);
 router.get("/hospitals/my-donations", authMiddleware, hospitalDonationHistory);
-
+router.get("/:requestId/nearby-donors", authMiddleware, nearbyDonors);
 router.get("/:id", authMiddleware, getBloodRequestById);
 module.exports = router;

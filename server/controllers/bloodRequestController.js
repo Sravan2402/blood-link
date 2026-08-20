@@ -807,6 +807,126 @@ const hospitalDonationHistory = async (req, res) => {
     });
   }
 };
+const nearbyDonors = async (req, res) => {
+  try {
+    const { radius } = req.query;
+    const { requestId } = req.params;
+
+    // 1. Validate radius
+    const radiusKm = Number(radius);
+
+    if (!radius || isNaN(radiusKm) || radiusKm <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid radius is required.",
+      });
+    }
+
+    // 2. Get blood request + hospital location
+    const requestResult = await pool.query(
+      `SELECT
+          br.blood_group,
+          h.latitude,
+          h.longitude,
+          h.city
+       FROM blood_requests br
+       JOIN hospitals h
+         ON br.hospital_id = h.hospital_id
+       WHERE br.request_id = $1`,
+      [requestId],
+    );
+
+    if (requestResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found.",
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    // 3. Hospital location must exist
+    if (request.latitude === null || request.longitude === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Hospital location is not available.",
+      });
+    }
+
+    // 4. Find nearby donors
+    const donorsResult = await pool.query(
+      `SELECT *
+       FROM (
+          SELECT
+              d.donor_id,
+              u.full_name,
+              u.phone,
+              u.email,
+              d.blood_group,
+              d.city,
+              d.latitude,
+              d.longitude,
+
+              (
+                6371 * acos(
+                  LEAST(
+                    1,
+                    GREATEST(
+                      -1,
+                      cos(radians($1))
+                      * cos(radians(d.latitude))
+                      * cos(
+                          radians(d.longitude)
+                          - radians($2)
+                        )
+                      + sin(radians($1))
+                      * sin(radians(d.latitude))
+                    )
+                  )
+                )
+              ) AS distance_km
+
+          FROM donors d
+
+          JOIN users u
+            ON d.user_id = u.user_id
+
+          WHERE d.blood_group = $3
+            AND d.city = $4
+            AND d.available_for_requests = true
+            AND d.eligibility_status = true
+            AND d.latitude IS NOT NULL
+            AND d.longitude IS NOT NULL
+       ) AS nearby
+
+       WHERE distance_km <= $5
+       ORDER BY distance_km ASC`,
+      [
+        request.latitude,
+        request.longitude,
+        request.blood_group,
+        request.city,
+        radiusKm,
+      ],
+    );
+
+    // 5. Response
+    return res.status(200).json({
+      success: true,
+      request_id: requestId,
+      radius_km: radiusKm,
+      count: donorsResult.rowCount,
+      donors: donorsResult.rows,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
@@ -819,4 +939,5 @@ module.exports = {
   completeBloodRequest,
   donationHistory,
   hospitalDonationHistory,
+  nearbyDonors,
 };
