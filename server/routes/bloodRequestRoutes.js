@@ -3,6 +3,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware.js");
 const {
+  findDonorsProgressively,
   completeBloodRequest,
   createBloodRequest,
   getAllBloodRequests,
@@ -37,5 +38,6 @@ router.patch("/:requestId/complete", authMiddleware, completeBloodRequest);
 router.get("/donors/my-donations", authMiddleware, donationHistory);
 router.get("/hospitals/my-donations", authMiddleware, hospitalDonationHistory);
 router.get("/:requestId/nearby-donors", authMiddleware, nearbyDonors);
+router.get("/:requestId/find-donors", authMiddleware, findDonorsProgressively);
 router.get("/:id", authMiddleware, getBloodRequestById);
 module.exports = router;

@@ -927,6 +927,128 @@ const nearbyDonors = async (req, res) => {
     });
   }
 };
+const findDonorsProgressively = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    const radiusLevels = [2, 5, 10];
+
+    // Get blood request + hospital location
+    const requestResult = await pool.query(
+      `SELECT
+          br.blood_group,
+          h.latitude,
+          h.longitude,
+          h.city
+       FROM blood_requests br
+       JOIN hospitals h
+         ON br.hospital_id = h.hospital_id
+       WHERE br.request_id = $1`,
+      [requestId],
+    );
+
+    if (requestResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found.",
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    if (request.latitude === null || request.longitude === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Hospital location is not available.",
+      });
+    }
+
+    // Search 2 → 5 → 10 KM
+    for (const radiusKm of radiusLevels) {
+      const donorsResult = await pool.query(
+        `SELECT *
+         FROM (
+            SELECT
+                d.donor_id,
+                u.full_name,
+                u.phone,
+                u.email,
+                d.blood_group,
+                d.city,
+                d.latitude,
+                d.longitude,
+
+                (
+                  6371 * acos(
+                    LEAST(
+                      1,
+                      GREATEST(
+                        -1,
+                        cos(radians($1))
+                        * cos(radians(d.latitude))
+                        * cos(
+                            radians(d.longitude)
+                            - radians($2)
+                          )
+                        + sin(radians($1))
+                        * sin(radians(d.latitude))
+                      )
+                    )
+                  )
+                ) AS distance_km
+
+            FROM donors d
+
+            JOIN users u
+              ON d.user_id = u.user_id
+
+            WHERE d.blood_group = $3
+              AND d.available_for_requests = true
+              AND d.eligibility_status = true
+              AND d.latitude IS NOT NULL
+              AND d.longitude IS NOT NULL
+
+         ) AS nearby
+
+         WHERE distance_km <= $4
+         ORDER BY distance_km ASC`,
+        [request.latitude, request.longitude, request.blood_group, radiusKm],
+      );
+
+      // If donors found, stop searching
+      if (donorsResult.rowCount > 0) {
+        console.log(
+          "eligible donors found within 10 KM for request ID:",
+          requestId,
+        );
+        return res.status(200).json({
+          success: true,
+          request_id: requestId,
+          radius_km: radiusKm,
+          count: donorsResult.rowCount,
+          donors: donorsResult.rows,
+        });
+      }
+    }
+    console.log("this method from find donor");
+    // No donors within 10 KM
+    return res.status(200).json({
+      success: true,
+      request_id: requestId,
+      radius_km: 10,
+      count: 0,
+      donors: [],
+      message: "No eligible donors found within 10 km.",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  }
+};
 module.exports = {
   getOpenBloodRequests,
   createBloodRequest,
@@ -939,5 +1061,6 @@ module.exports = {
   completeBloodRequest,
   donationHistory,
   hospitalDonationHistory,
+  findDonorsProgressively,
   nearbyDonors,
 };
