@@ -74,6 +74,126 @@ const createBloodRequest = async (req, res) => {
     });
   }
 };
+const findAndMatchDonors = async (requestId) => {
+  try {
+    const radiusLevels = [2, 5, 10, 15, 20];
+
+    // Get blood request + hospital location
+    const requestResult = await pool.query(
+      `SELECT
+          br.blood_group,
+          h.latitude,
+          h.longitude,
+          h.city
+       FROM blood_requests br
+       JOIN hospitals h
+         ON br.hospital_id = h.hospital_id
+       WHERE br.request_id = $1`,
+      [requestId],
+    );
+
+    if (requestResult.rowCount === 0) {
+      return {
+        success: false,
+        message: "Blood request not found.",
+      };
+    }
+
+    const request = requestResult.rows[0];
+
+    if (request.latitude === null || request.longitude === null) {
+      return {
+        success: false,
+        message: "Hospital location is not available.",
+      };
+    }
+
+    // Search 2 → 5 → 10 → 15 → 20 KM
+    for (const radiusKm of radiusLevels) {
+      const donorsResult = await pool.query(
+        `SELECT *
+         FROM (
+            SELECT
+                d.donor_id,
+                u.full_name,
+                u.phone,
+                u.email,
+                d.blood_group,
+                d.city,
+                d.latitude,
+                d.longitude,
+                d.last_donation_date,
+                d.alcohol_consumed_recently,
+
+                (
+                  6371 * acos(
+                    LEAST(
+                      1,
+                      GREATEST(
+                        -1,
+                        cos(radians($1))
+                        * cos(radians(d.latitude))
+                        * cos(
+                            radians(d.longitude)
+                            - radians($2)
+                          )
+                        + sin(radians($1))
+                        * sin(radians(d.latitude))
+                      )
+                    )
+                  )
+                ) AS distance_km
+
+            FROM donors d
+
+            JOIN users u
+              ON d.user_id = u.user_id
+
+            WHERE d.blood_group = $3
+              AND d.available_for_requests = true
+              AND d.eligibility_status = true
+              AND d.latitude IS NOT NULL
+              AND d.longitude IS NOT NULL
+         ) AS nearby
+
+         WHERE distance_km <= $4`,
+        [request.latitude, request.longitude, request.blood_group, radiusKm],
+      );
+
+      if (donorsResult.rowCount > 0) {
+        const donorsWithPriority = donorsResult.rows.map((donor) => ({
+          ...donor,
+          priority_score:
+            100 -
+            donor.distance_km * 5 +
+            (donor.alcohol_consumed_recently ? -20 : 20),
+        }));
+
+        donorsWithPriority.sort((a, b) => b.priority_score - a.priority_score);
+
+        await createDonorMatches(requestId, donorsWithPriority, radiusKm);
+
+        return {
+          success: true,
+          radius_km: radiusKm,
+          count: donorsWithPriority.length,
+          donors: donorsWithPriority,
+        };
+      }
+    }
+
+    return {
+      success: true,
+      radius_km: 20,
+      count: 0,
+      donors: [],
+      message: "No eligible donors found within 20 km.",
+    };
+  } catch (error) {
+    console.error("Find and Match Donors Error:", error);
+    throw error;
+  }
+};
 const getMyBloodRequests = async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -931,7 +1051,7 @@ const findDonorsProgressively = async (req, res) => {
   try {
     const { requestId } = req.params;
 
-    const radiusLevels = [2, 5, 10];
+    const radiusLevels = [2, 5, 10, 15, 20];
 
     // Get blood request + hospital location
     const requestResult = await pool.query(
@@ -963,7 +1083,7 @@ const findDonorsProgressively = async (req, res) => {
       });
     }
 
-    // Search 2 → 5 → 10 KM
+    // Search 2 → 5 → 10 → 15 → 20 KM
     for (const radiusKm of radiusLevels) {
       const donorsResult = await pool.query(
         `SELECT *
@@ -977,6 +1097,8 @@ const findDonorsProgressively = async (req, res) => {
                 d.city,
                 d.latitude,
                 d.longitude,
+                d.last_donation_date,
+                d.alcohol_consumed_recently,
 
                 (
                   6371 * acos(
@@ -1007,38 +1129,62 @@ const findDonorsProgressively = async (req, res) => {
               AND d.eligibility_status = true
               AND d.latitude IS NOT NULL
               AND d.longitude IS NOT NULL
-
          ) AS nearby
 
          WHERE distance_km <= $4
-         ORDER BY distance_km ASC`,
+
+         ORDER BY
+           (
+             100
+             - (distance_km * 5)
+             + CASE
+                 WHEN alcohol_consumed_recently = true
+                 THEN -20
+                 ELSE 20
+               END
+           ) DESC,
+           distance_km ASC`,
         [request.latitude, request.longitude, request.blood_group, radiusKm],
       );
 
       // If donors found, stop searching
       if (donorsResult.rowCount > 0) {
+        const donorsWithPriority = donorsResult.rows.map((donor) => ({
+          ...donor,
+          priority_score:
+            100 -
+            donor.distance_km * 5 +
+            (donor.alcohol_consumed_recently ? -20 : 20),
+        }));
+
+        donorsWithPriority.sort((a, b) => b.priority_score - a.priority_score);
+
+        await createDonorMatches(requestId, donorsWithPriority, radiusKm);
+
         console.log(
-          "eligible donors found within 10 KM for request ID:",
+          `Eligible donors found within ${radiusKm} KM for request ID:`,
           requestId,
         );
+
         return res.status(200).json({
           success: true,
           request_id: requestId,
           radius_km: radiusKm,
-          count: donorsResult.rowCount,
-          donors: donorsResult.rows,
+          count: donorsWithPriority.length,
+          donors: donorsWithPriority,
         });
       }
     }
-    console.log("this method from find donor");
-    // No donors within 10 KM
+
+    console.log("No eligible donors found within 20 KM");
+
     return res.status(200).json({
       success: true,
       request_id: requestId,
-      radius_km: 10,
+      radius_km: 20,
       count: 0,
       donors: [],
-      message: "No eligible donors found within 10 km.",
+      message: "No eligible donors found within 20 km.",
     });
   } catch (error) {
     console.error(error);
@@ -1049,7 +1195,25 @@ const findDonorsProgressively = async (req, res) => {
     });
   }
 };
+const createDonorMatches = async (requestId, donors, radiusKm) => {
+  try {
+    for (const donor of donors) {
+      await pool.query(
+        `INSERT INTO blood_request_matches
+          (request_id, donor_id, radius_km, priority_score)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (request_id, donor_id)
+         DO NOTHING`,
+        [requestId, donor.donor_id, radiusKm, donor.priority_score],
+      );
+    }
+  } catch (error) {
+    console.error("Error creating donor matches:", error);
+    throw error;
+  }
+};
 module.exports = {
+  createDonorMatches,
   getOpenBloodRequests,
   createBloodRequest,
   getAllBloodRequests,
