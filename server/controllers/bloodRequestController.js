@@ -1,4 +1,6 @@
 const pool = require("../config/db.js");
+const { createNotification } = require("../services/notificationService");
+const { findNearbyDonors } = require("../services/donorMatchingService");
 const createBloodRequest = async (req, res) => {
   try {
     const {
@@ -12,14 +14,17 @@ const createBloodRequest = async (req, res) => {
       urgency,
       required_before,
     } = req.body;
+
     const userId = req.user.user_id;
     const role = req.user.role;
+
     if (role !== "HOSPITAL") {
       return res.status(403).json({
         success: false,
         message: "only hospital can create blood request",
       });
     }
+
     if (
       !blood_group ||
       !units_required ||
@@ -33,20 +38,37 @@ const createBloodRequest = async (req, res) => {
         message: "All required fields must be provided",
       });
     }
+
     const hospital = await pool.query(
       "SELECT hospital_id FROM hospitals WHERE user_id = $1",
       [userId],
     );
+
     if (hospital.rowCount === 0) {
       return res.status(404).json({
         success: false,
         message: "Hospital not found",
       });
     }
+
     const hospitalId = hospital.rows[0].hospital_id;
+
+    // Create blood request
     const newBloodRequest = await pool.query(
-      `INSERT INTO blood_requests (hospital_id, blood_group, units_required, patient_name, patient_age, patient_gender, city, hospital_address, urgency, required_before)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      `INSERT INTO blood_requests (
+        hospital_id,
+        blood_group,
+        units_required,
+        patient_name,
+        patient_age,
+        patient_gender,
+        city,
+        hospital_address,
+        urgency,
+        required_before
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
       [
         hospitalId,
         blood_group,
@@ -60,13 +82,52 @@ const createBloodRequest = async (req, res) => {
         required_before,
       ],
     );
+
+    const bloodRequest = newBloodRequest.rows[0];
+
+    // Find nearby matching donors
+    const notificationRadius = 20;
+
+    let matchingDonors = [];
+
+    try {
+      const matchingResult = await findNearbyDonors(
+        bloodRequest.request_id,
+        notificationRadius,
+      );
+
+      matchingDonors = matchingResult.donors;
+    } catch (matchingError) {
+      console.error("Donor matching failed:", matchingError);
+    }
+
+    // Send in-app notifications
+    for (const donor of matchingDonors) {
+      try {
+        await createNotification({
+          userId: donor.user_id,
+          title: "New Blood Request",
+          message: `A ${bloodRequest.blood_group} blood request has been created in ${bloodRequest.city}. You are approximately ${Number(donor.distance_km).toFixed(1)} km away.`,
+          type: "BLOOD_REQUEST",
+          requestId: bloodRequest.request_id,
+        });
+      } catch (notificationError) {
+        console.error(
+          `Notification failed for donor ${donor.donor_id}:`,
+          notificationError,
+        );
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: "Blood request created successfully",
-      data: newBloodRequest.rows[0],
+      data: bloodRequest,
+      notified_donors: matchingDonors.length,
     });
   } catch (error) {
     console.error("Create Blood Request Error:", error);
+
     res.status(500).json({
       success: false,
       message: "Error creating blood request",
@@ -342,7 +403,9 @@ const respondToBloodRequest = async (req, res) => {
 
     const userId = req.user.user_id;
     const role = req.user.role;
+
     console.log("User ID:", userId);
+
     // 1. Check role
     if (role !== "DONOR") {
       return res.status(403).json({
@@ -383,8 +446,10 @@ const respondToBloodRequest = async (req, res) => {
       });
     }
 
+    const bloodRequest = requestResult.rows[0];
+
     // 4. Check request status
-    if (requestResult.rows[0].status !== "OPEN") {
+    if (bloodRequest.status !== "OPEN") {
       return res.status(400).json({
         success: false,
         message: "This blood request is no longer open.",
@@ -421,6 +486,34 @@ const respondToBloodRequest = async (req, res) => {
       [requestId, donorId, response_message],
     );
 
+    // 7. Get hospital user_id
+    const hospitalResult = await pool.query(
+      `SELECT h.user_id
+       FROM blood_requests br
+       JOIN hospitals h
+         ON br.hospital_id = h.hospital_id
+       WHERE br.request_id = $1`,
+      [requestId],
+    );
+
+    if (hospitalResult.rows.length > 0) {
+      const hospitalUserId = hospitalResult.rows[0].user_id;
+
+      // 8. Notify hospital
+      try {
+        await createNotification({
+          userId: hospitalUserId,
+          title: "Donor Response",
+          message: `A donor has responded to your ${bloodRequest.blood_group} blood request in ${bloodRequest.city}.`,
+          type: "DONOR_RESPONSE",
+          requestId: requestId,
+        });
+      } catch (notificationError) {
+        console.error("Hospital notification failed:", notificationError);
+      }
+    }
+
+    // 9. Return success
     return res.status(201).json({
       success: true,
       message: "Response submitted successfully.",
@@ -613,6 +706,7 @@ const bloodAccepted = async (req, res) => {
       r.response_id,
       r.status,
       r.responded_at,
+      u.user_id,
       u.full_name,
       u.phone,
       u.email,
@@ -628,8 +722,21 @@ const bloodAccepted = async (req, res) => {
 
     // 10. Commit
     await client.query("COMMIT");
+    // 12. Notify selected donor
+    try {
+      const selectedDonor = donorDetails.rows[0];
 
-    // 11. Return response
+      await createNotification({
+        userId: selectedDonor.user_id,
+        title: "Donor Selected",
+        message: `You have been selected for the ${selectedDonor.blood_group} blood request.`,
+        type: "DONOR_SELECTED",
+        requestId: response.request_id,
+      });
+    } catch (notificationError) {
+      console.error("Selected donor notification failed:", notificationError);
+    }
+    // 12. Return response
     return res.status(200).json({
       success: true,
       message: "Donor selected successfully.",
@@ -722,10 +829,14 @@ const completeBloodRequest = async (req, res) => {
 
     // 5. Get selected donor
     const donorResult = await client.query(
-      `SELECT donor_id
-       FROM blood_request_responses
-       WHERE request_id = $1
-       AND status = 'SELECTED_BY_HOSPITAL'`,
+      `SELECT
+      r.donor_id,
+      d.user_id
+   FROM blood_request_responses r
+   JOIN donors d
+     ON r.donor_id = d.donor_id
+   WHERE r.request_id = $1
+   AND r.status = 'SELECTED_BY_HOSPITAL'`,
       [requestId],
     );
 
@@ -739,7 +850,7 @@ const completeBloodRequest = async (req, res) => {
     }
 
     const donorId = donorResult.rows[0].donor_id;
-
+    const donorUserId = donorResult.rows[0].user_id;
     // 6. Update blood request
     const completedRequest = await client.query(
       `UPDATE blood_requests
@@ -772,7 +883,36 @@ const completeBloodRequest = async (req, res) => {
 
     // 8. Commit
     await client.query("COMMIT");
+    // 9. Send completion notifications
 
+    // Notify donor
+    try {
+      await createNotification({
+        userId: donorUserId,
+        title: "Blood Donation Completed",
+        message: `The ${request.blood_group} blood request has been completed successfully. Thank you for your donation.`,
+        type: "DONATION_COMPLETED",
+        requestId: requestId,
+      });
+    } catch (notificationError) {
+      console.error("Donor completion notification failed:", notificationError);
+    }
+
+    // Notify hospital
+    try {
+      await createNotification({
+        userId: userId,
+        title: "Blood Request Completed",
+        message: `The ${request.blood_group} blood request has been completed successfully.`,
+        type: "REQUEST_COMPLETED",
+        requestId: requestId,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Hospital completion notification failed:",
+        notificationError,
+      );
+    }
     // 9. Response
     return res.status(200).json({
       success: true,
@@ -786,6 +926,135 @@ const completeBloodRequest = async (req, res) => {
     await client.query("ROLLBACK");
 
     console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  } finally {
+    client.release();
+  }
+};
+const cancelBloodRequest = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { requestId } = req.params;
+    const userId = req.user.user_id;
+    const role = req.user.role;
+
+    // 1. Check role
+    if (role !== "HOSPITAL") {
+      return res.status(403).json({
+        success: false,
+        message: "Only hospitals can cancel blood requests.",
+      });
+    }
+
+    // 2. Get hospital ID
+    const hospitalResult = await client.query(
+      `SELECT hospital_id
+       FROM hospitals
+       WHERE user_id = $1`,
+      [userId],
+    );
+
+    if (hospitalResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital profile not found.",
+      });
+    }
+
+    const hospitalId = hospitalResult.rows[0].hospital_id;
+
+    await client.query("BEGIN");
+
+    // 3. Get blood request
+    const requestResult = await client.query(
+      `SELECT
+          request_id,
+          hospital_id,
+          blood_group,
+          units_required,
+          status
+       FROM blood_requests
+       WHERE request_id = $1
+         AND hospital_id = $2
+       FOR UPDATE`,
+      [requestId, hospitalId],
+    );
+
+    if (requestResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found.",
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    // 4. Check request status
+    if (request.status === "COMPLETED" || request.status === "CANCELLED") {
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        success: false,
+        message: `Blood request is already ${request.status.toLowerCase()}.`,
+      });
+    }
+
+    // 5. Find donors who should be notified
+    const donorsResult = await client.query(
+      `SELECT DISTINCT
+          d.user_id
+       FROM blood_request_responses r
+       JOIN donors d
+         ON r.donor_id = d.donor_id
+       WHERE r.request_id = $1
+         AND r.status IN ('ACCEPTED_BY_DONOR', 'SELECTED_BY_HOSPITAL')`,
+      [requestId],
+    );
+
+    // 6. Cancel request
+    const updateResult = await client.query(
+      `UPDATE blood_requests
+       SET status = 'CANCELLED'
+       WHERE request_id = $1
+       RETURNING *`,
+      [requestId],
+    );
+
+    await client.query("COMMIT");
+
+    // 7. Notify relevant donors
+    for (const donor of donorsResult.rows) {
+      try {
+        await createNotification({
+          userId: donor.user_id,
+          title: "Blood Request Cancelled",
+          message: `The ${request.blood_group} blood request has been cancelled by the hospital.`,
+          type: "REQUEST_CANCELLED",
+          requestId: requestId,
+        });
+      } catch (notificationError) {
+        console.error("Cancellation notification error:", notificationError);
+      }
+    }
+
+    // 8. Response
+    return res.status(200).json({
+      success: true,
+      message: "Blood request cancelled successfully.",
+      data: updateResult.rows[0],
+      notified_donors: donorsResult.rowCount,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    console.error("Cancel Blood Request Error:", error);
 
     return res.status(500).json({
       success: false,
@@ -932,7 +1201,6 @@ const nearbyDonors = async (req, res) => {
     const { radius } = req.query;
     const { requestId } = req.params;
 
-    // 1. Validate radius
     const radiusKm = Number(radius);
 
     if (!radius || isNaN(radiusKm) || radiusKm <= 0) {
@@ -942,119 +1210,27 @@ const nearbyDonors = async (req, res) => {
       });
     }
 
-    // 2. Get blood request + hospital location
-    const requestResult = await pool.query(
-      `SELECT
-          br.blood_group,
-          h.latitude,
-          h.longitude,
-          h.city
-       FROM blood_requests br
-       JOIN hospitals h
-         ON br.hospital_id = h.hospital_id
-       WHERE br.request_id = $1`,
-      [requestId],
-    );
+    const { donors } = await findNearbyDonors(requestId, radiusKm);
 
-    if (requestResult.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Blood request not found.",
-      });
-    }
-
-    const request = requestResult.rows[0];
-
-    // 3. Hospital location must exist
-    if (request.latitude === null || request.longitude === null) {
-      return res.status(400).json({
-        success: false,
-        message: "Hospital location is not available.",
-      });
-    }
-
-    // 4. Find nearby donors
-    const donorsResult = await pool.query(
-      `SELECT *
-   FROM (
-      SELECT
-          d.donor_id,
-          u.full_name,
-          u.phone,
-          u.email,
-          d.blood_group,
-          d.city,
-          d.latitude,
-          d.longitude,
-
-          (
-            6371 * acos(
-              LEAST(
-                1,
-                GREATEST(
-                  -1,
-                  cos(radians($1))
-                  * cos(radians(d.latitude))
-                  * cos(
-                      radians(d.longitude)
-                      - radians($2)
-                    )
-                  + sin(radians($1))
-                  * sin(radians(d.latitude))
-                )
-              )
-            )
-          ) AS distance_km
-
-      FROM donors d
-
-      JOIN users u
-        ON d.user_id = u.user_id
-
-      WHERE d.blood_group = $3
-        AND d.city = $4
-        AND d.available_for_requests = true
-        AND d.eligibility_status = true
-        AND d.latitude IS NOT NULL
-        AND d.longitude IS NOT NULL
-
-        -- Bounding box
-        AND d.latitude BETWEEN
-            $1 - ($5 / 111.0)
-            AND
-            $1 + ($5 / 111.0)
-
-        AND d.longitude BETWEEN
-            $2 - (
-              $5 / (111.0 * cos(radians($1)))
-            )
-            AND
-            $2 + (
-              $5 / (111.0 * cos(radians($1)))
-            )
-   ) AS nearby
-
-   WHERE distance_km <= $5
-   ORDER BY distance_km ASC`,
-      [
-        request.latitude,
-        request.longitude,
-        request.blood_group,
-        request.city,
-        radiusKm,
-      ],
-    );
-
-    // 5. Response
     return res.status(200).json({
       success: true,
       request_id: requestId,
       radius_km: radiusKm,
-      count: donorsResult.rowCount,
-      donors: donorsResult.rows,
+      count: donors.length,
+      donors,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Nearby Donors Error:", error);
+
+    if (
+      error.message === "Blood request not found." ||
+      error.message === "Hospital location is not available."
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -1242,4 +1418,5 @@ module.exports = {
   hospitalDonationHistory,
   findDonorsProgressively,
   nearbyDonors,
+  cancelBloodRequest,
 };
