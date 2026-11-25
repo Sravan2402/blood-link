@@ -4,7 +4,7 @@ const cors = require("cors");
 const pool = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const bloodRequestRoutes = require("./routes/bloodRequestRoutes");
-const dashboardRequest = require("./routes/dashboardRequest");
+const dashboardRequest = require("./routes/dashBoardRequest");
 const notificationRoutes = require("./routes/notificationRoutes");
 dotenv.config();
 

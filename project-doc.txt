@@ -1,0 +1,937 @@
+i 
+ 
+  
+BloodLink – Real Time Emergency Blood Donor Finder System 
+ 
+A dissertation submitted to the Jawaharlal Nehru Technological University, Hyderabad in 
+partial fulfillment of the requirement for the award of a degree of   
+ 
+ 
+BACHELOR OF TECHNOLOGY   
+IN   
+COMPUTER SCIENCE AND ENGINEERING  
+ 
+ 
+Submitted  
+by  
+ 
+G. Siri Chandana – 23B81A05KE  
+S. Sravan Kumar - 23B81A05KG  
+ 
+Under the Guidance of 
+Dr. T. Venkata Nagaraju 
+Associate Professor  
+ 
+  
+Department of Computer Science and Engineering   
+CVR COLLEGE OF ENGINEERING   
+ 
+(An UGC Autonomous Institution, Affiliated to JNTUH, Accredited by NBA, and NAAC)  
+Vastunagar, Mangalpalli (V), Ibrahimpatnam (M), 
+ Ranga Reddy (Dist.) - 501510, Telangana State.   
+ 
+ 
+2026-2027  
+  
+
+ii 
+ 
+ 
+  
+  
+DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING  
+  
+ 
+ 
+ 
+CERTIFICATE 
+  
+ 
+This is to certify that the Project Work Stage-I entitled BloodLink – Real Time Emergency 
+Blood Donor Finder System is submitted by G. Siri Chandana (23B81A05KE), S. Sravan 
+Kumar (23B81A05KG) in partial fulfillment for the requirement for the award of Bachelor 
+of Technology in Computer Science and Engineering for the academic year 2026-2027.  
+  
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Project Supervisor     Professor in-charge project 
+(Dr. T. Venkata Nagaraju)     (Dr. C. Ramesh) 
+Associate Professor      Professor 
+ 
+ 
+ 
+ 
+ 
+        Professor and Head, CSE 
+        (Dr. A. Vani Vathsala) 
+ 
+ 
+ 
+ 
+ 
+CVR COLLEGE OF ENGINEERING 
+(An UGC Autonomous Institution, Affiliated to JNTUH Accredited by NBA, 
+and NAAC) 
+Vastunagar, Mangalpalli (V), Ibrahimpatnam (M), Ranga Reddy (Dist.) - 
+501510, Telangana State. 
+ 
+iii 
+ 
+DECLARATION 
+  
+ 
+We, hereby declare that this Project Work Stage-I report titled BloodLink – Real Time 
+Emergency Blood Donor Finder System submitted to the Department of Computer Science 
+and Engineering, CVR College of Engineering, is a record of original work done by us under 
+the guidance of Dr. T. Venkata Nagaraju. The information and data given in the 
+report is authentic to the best of my knowledge. This project report has not been submitted to 
+any other university or institution for the award of any degree or diploma, nor has it been 
+published previously.   
+  
+  
+  
+       G. Siri Chandana – 23B81A05KE  
+S. Sravan Kumar - 23B81A05KG  
+  
+  
+  
+Date:   
+  
+Place:  
+  
+  
+  
+  
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+iv 
+ 
+ ACKNOWLEDGEMENT 
+  
+ 
+We extend our heartfelt thanks to our respected Principal, Dr. K. Ramamohan Reddy, and 
+Vice-Principal, Prof. L. C. Siva Reddy, for providing the necessary infrastructure, facilities, 
+and academic environment conducive to carrying out this project. 
+ 
+We express our sincere appreciation to our Head of the Department, Dr. A. Vani Vathsala, 
+Department of Computer Science and Engineering (CSE), for her valuable support and 
+encouragement throughout the project. 
+ 
+We are deeply grateful to our Project Coordinator, Dr. N. Subhash Chandra, for his valuable 
+guidance, encouragement, and support throughout the project work. We also express our 
+sincere thanks to our Professor-in-Charge, Dr. C. Ramesh, for his guidance and 
+encouragement, and our Section Coordinator, Datla Ganesh, for his coordination and support 
+throughout the project. 
+ 
+We would like to express our profound gratitude to our Project Guide, Dr. T. Venkata 
+Nagaraju, for his valuable guidance, constructive suggestions, and technical assistance, which 
+significantly contributed to the successful completion of Project Stage-1. 
+ 
+We acknowledge the contributions of all faculty members of the Department of Computer 
+Science and Engineering for their valuable suggestions and cooperation. Finally, we express 
+our profound gratitude to our parents and well-wishers for their unwavering support, 
+motivation, and encouragement throughout the project. 
+ 
+.  
+  
+  
+      G. Siri Chandana – 23B81A05KE  
+S. Sravan Kumar - 23B81A05KG  
+ 
+ 
+ 
+ 
+ 
+v 
+ 
+ABSTRACT 
+ 
+Timely access to compatible blood is critical during medical emergencies. Hospitals frequently 
+depend on phone calls, social-media appeals, messaging groups, and manually maintained 
+records to locate donors, which consumes valuable time. To address this problem, this project 
+presents BloodLink, a web-based emergency blood donor finder and blood request 
+management platform that connects donors, hospitals, blood banks, and administrators on a 
+single system. 
+In BloodLink, a hospital creates a blood request. The system identifies eligible and available 
+donors with compatible blood groups in the hospital's city using stored donor and hospital 
+coordinates and the Haversine distance formula. The search begins with a small radius and is 
+progressively expanded (2, 5, 10, 15, and 20 km) when no suitable donor is found. Matching 
+donors are ranked using a priority score that considers factors such as distance, recent donation 
+information, recent alcohol consumption, eligibility, and availability, and are notified through 
+the in-app notification system. Donors respond to the request, the hospital selects a suitable 
+donor response, and the completed donation is recorded in the donation history. BloodLink 
+does not track donors continuously; it relies on stored location information. 
+The system is implemented as a three-tier web application using React.js for the frontend, 
+Node.js with Express.js for the REST API backend, and PostgreSQL as the primary database. 
+Authentication is based on JSON Web Tokens (JWT) with a four-hour expiry and bcrypt 
+password hashing, and access to functionality is controlled through role-based authorization 
+for the DONOR, HOSPITAL, BLOOD_BANK, and ADMIN roles. Database indexing, 
+bounding-box pre-filtering, and load testing were considered to evaluate the performance of 
+the nearby-donor search. Features such as SMS and push notifications, Redis-based caching 
+and queues, request expiration, blood bank inventory management, and machine-learning-
+based prediction are identified as future enhancements and are not part of the present 
+implementation. 
+Keywords: blood donation, emergency blood request, donor matching, Haversine distance, 
+PostgreSQL, Node.js, React.js, role-based access control. 
+vi 
+ 
+TABLE OF CONTENTS 
+1. INTRODUCTION ............................................................................................................ 1 
+1.1 Motivation ......................................................................................................................... 1 
+1.2 Problem Statement ............................................................................................................ 2 
+1.3 Problem Objectives ........................................................................................................... 2 
+1.4 Scope of the Present Work ................................................................................................. 3 
+1.5 Project Report Organization ............................................................................................. 3 
+2. LITERATURE SURVEY ..................................................................................................... 4 
+2.1 Existing Work ................................................................................................................... 4 
+2.1.1 Mobile Cloud-Based Blood Donation Framework (2014) ............................................................. 4 
+2.1.2 GPS-Based Blood Donor Search System (2019) ............................................................................ 4 
+2.1.3 Mobile Blood Donation Applications (2023) ................................................................................. 4 
+2.1.4 Blood Hub: Blood Delivery Management System (2024) .............................................................. 4 
+2.1.5 AI-Based Blood Donation Management System (2025) ................................................................ 4 
+2.1.6 Rakt Setu: MERN-Based Blood Donation Platform (2026) .......................................................... 4 
+2.2 Limitations of Existing Work ............................................................................................ 5 
+3. SOFTWARE AND HARDWARE REQUIREMENTS .............................................................. 6 
+3.1 Software Requirements ..................................................................................................... 6 
+3.2 Hardware Requirements ................................................................................................... 6 
+3.3 Functional Requirements................................................................................................... 6 
+3.3.1 User Registration and Login ......................................................................................................... 6 
+3.3.2 Role-Based Access and Dashboards .............................................................................................. 7 
+3.3.3 Donor and Hospital Profiles .......................................................................................................... 7 
+3.3.4 Blood Request Management .......................................................................................................... 7 
+3.3.5 Blood Group Compatibility and Nearby Donor Matching ........................................................... 7 
+3.3.6 Donor Priority Ranking ................................................................................................................ 8 
+3.3.7 Donor Responses and Selection ..................................................................................................... 8 
+3.3.8 Request Completion and Donation History .................................................................................. 8 
+3.3.9 In-App Notifications ...................................................................................................................... 8 
+3.4 Non-Functional Requirements ........................................................................................... 8 
+3.4.1 Performance .................................................................................................................................. 8 
+3.4.2 Security .......................................................................................................................................... 8 
+3.4.3 Usability ......................................................................................................................................... 9 
+3.4.4 Reliability and Data Integrity........................................................................................................ 9 
+3.4.5 Maintainability .............................................................................................................................. 9 
+3.4.6 Scalability ...................................................................................................................................... 9 
+3.4.7 Compatibility ................................................................................................................................. 9 
+4. PROPOSED SYSTEM DESIGN ........................................................................................ 10 
+4.1 Proposed Methods ........................................................................................................... 10 
+4.2 System Architecture ........................................................................................................ 11 
+4.3 Database Design .............................................................................................................. 11 
+vii 
+ 
+4.4 Class Diagram ................................................................................................................. 12 
+4.5 Sequence Diagram ........................................................................................................... 12 
+4.6 Use Case Diagram ........................................................................................................... 13 
+4.7 Activity Diagram ............................................................................................................. 14 
+4.8 REST API Design ............................................................................................................ 16 
+5. IMPLEMENTATION AND TESTING ................................................................................ 17 
+5.1 Implementation ............................................................................................................... 17 
+5.1.1 Authentication and Authorisation ............................................................................................... 17 
+5.1.2 Blood Request and Response Module ......................................................................................... 17 
+5.1.3 Nearby Donor Matching .............................................................................................................. 17 
+5.1.4 Notification Module ..................................................................................................................... 17 
+5.2 Testing ............................................................................................................................. 18 
+Authentication testing .......................................................................................................................... 18 
+Nearby donor matching testing............................................................................................................ 18 
+Request workflow and notification testing .......................................................................................... 18 
+5.3 Performance Testing ....................................................................................................... 18 
+5.4 Screenshots ...................................................................................................................... 20 
+6. CONCLUSION AND FUTURE ENHANCEMENTS .............................................................. 23 
+6.1 Conclusion ....................................................................................................................... 23 
+6.2 Future Enhancements ...................................................................................................... 23 
+REFERENCES ................................................................................................................... 24 
+ 
+viii 
+ 
+LIST OF FIGURES 
+Figure 4.1: System architecture of BloodLink ............................................................... 11 
+Figure 4.2: Class (entity) diagram of BloodLink ........................................................... 12 
+Figure 4.3: Sequence diagram of the blood request workflow ....................................... 13 
+Figure 4.4: Use case diagram of BloodLink ................................................................... 14 
+Figure 4.5: Activity diagram of the blood request workflow ......................................... 15 
+Figure 5.1: Login and registration page ........................................................................ 20 
+Figure 5.2: Donor dashboard ........................................................................................ 20 
+Figure 5.3: Blood request creation ................................................................................ 21 
+Figure 5.4: Nearby donor search ................................................................................... 21 
+Figure 5.5: In-app notifications ..................................................................................... 21 
+Figure 5.6: Request tracking and donor responses ........................................................ 22 
+Figure 5.7: Blood Donation Camp Listings and RegistrationTracking......……………..22 
+1 
+ 
+1. INTRODUCTION 
+Blood is one of the most essential resources in healthcare and is required for surgeries, accident 
+and trauma cases, childbirth-related complications, cancer treatment, and various other medical 
+emergencies. The World Health Organization (WHO) emphasizes the importance of 
+maintaining a safe and adequate supply of blood to meet the needs of patients requiring 
+transfusion. During an emergency, timely access to the required blood group can be critical for 
+effective medical treatment and patient survival. Therefore, ensuring the availability of 
+compatible blood at the right time and place is an important challenge for healthcare systems. 
+Traditional approaches to locating blood donors depend on blood banks, donor directories, 
+social-media appeals, messaging groups, or personal contacts. These approaches require 
+considerable manual effort and consume valuable time in critical situations. Although several 
+online blood donation platforms exist, some of them concentrate mainly on donor registration 
+and request listing rather than on coordinating the complete request-to-donation workflow. 
+With the availability of web technologies and location information, it is possible to identify 
+donors near a hospital by comparing stored coordinates and calculating approximate distances. 
+Matching donors by blood group, eligibility, availability, and distance can reduce the manual 
+effort involved in finding suitable donors. 
+This project presents BloodLink – Real Time Emergency Blood Donor Finder System, a 
+web application through which hospitals create blood requests and donors respond to them. 
+When a request is created, BloodLink identifies compatible, eligible, and available donors in 
+the hospital's city using stored coordinates and the Haversine distance formula, expands the 
+search radius progressively when required, ranks the candidates using a priority score, and 
+notifies them through in-app notifications. Donors respond to the request, the hospital selects 
+a suitable donor response, and the completed donation is recorded in the donation history. The 
+application is developed using React.js, Node.js, Express.js, and PostgreSQL, with JWT-based 
+authentication, bcrypt password hashing, and role-based access control for donors, hospitals, 
+blood banks, and administrators. 
+In this report, the term "real time" in the project title refers to the immediate identification and 
+notification of matching donors when a request is created. It does not imply continuous GPS 
+tracking of donors: BloodLink uses stored donor and hospital location information and does 
+not track donors in the background. Features that are planned but not yet implemented, such as 
+SMS and push notifications, Redis-based caching, request expiration, blood bank inventory 
+management, and machine-learning-based prediction, are described only as future 
+enhancements in Section 6.2. 
+1.1 Motivation 
+The motivation behind BloodLink arises from the need for timely access to blood during 
+medical emergencies. Many patients require immediate transfusions because of accidents, 
+surgeries, childbirth complications, and severe illnesses. Despite the presence of blood banks 
+2 
+ 
+and donor databases, locating a compatible and available donor within a short period remains 
+a challenge. 
+In many cases, hospitals rely on manual phone calls, social-media posts, or personal networks 
+to find donors. These methods are time-consuming and may not reach eligible donors quickly. 
+Some existing platforms also provide limited support for location-based matching and for 
+tracking the progress of a request after donors have been contacted. 
+BloodLink is motivated by the aim of centralising emergency blood requests and donor 
+coordination in a single web platform, so that hospitals can reach nearby compatible donors, 
+donors can respond easily, and the request can be followed through to completion and recorded. 
+1.2 Problem Statement 
+During medical emergencies, patients and hospitals often face significant challenges in locating 
+compatible blood donors within the limited time available. Existing arrangements frequently 
+rely on manual communication or static donor lists for donor identification. As a result, 
+considerable time may be spent searching for eligible donors, which can delay critical medical 
+treatment. 
+An efficient system is required to quickly identify nearby compatible donors, notify them, 
+record their responses, maintain donor eligibility and availability information, and provide 
+secure management of blood requests. Such a system should improve coordination among 
+donors, hospitals, blood banks, and administrators while supporting timely access to blood 
+during emergencies. 
+1.3 Problem Objectives 
+The main objectives of the BloodLink system are: 
+• To develop a web-based application for centralised management of emergency blood 
+requests and donor coordination. 
+• To identify compatible, eligible, and available donors near a requesting hospital using 
+blood-group compatibility, city, stored coordinates, and Haversine distance with a 
+progressively expanding search radius. 
+• To rank candidate donors using a priority score and notify them through in-app 
+notifications. 
+• To allow donors to respond to blood requests and hospitals to select a donor response 
+and complete the request. 
+• To maintain donor availability and eligibility information and a record of completed 
+donations. 
+• To provide secure role-based access for donors, hospitals, blood banks, and 
+administrators using JWT authentication and bcrypt password hashing. 
+• To evaluate the performance of the APIs and the nearby-donor search using database 
+indexing and load testing. 
+3 
+ 
+1.4 Scope of the Present Work 
+The present work covers the implemented features of BloodLink: user registration and login, 
+role-based authorization, donor and hospital profiles, blood request creation and tracking, 
+nearby donor matching with priority ranking, donor responses, donor selection, request 
+completion, donation history, in-app notifications, and role-based dashboards. The following 
+are outside the scope of the present implementation and are treated as future work: SMS and 
+push notifications, Redis-based caching and queues, rate limiting, password reset, email 
+verification, request expiration, hospital verification workflow, blood bank inventory 
+management, QR-based authenticity verification, advanced analytics, and machine-learning-
+based prediction. 
+1.5 Project Report Organization 
+This project report is organised into six chapters followed by a list of references. 
+Chapter 1 – Introduction: Presents the background, motivation, problem statement, 
+objectives, scope, and organisation of the report. 
+Chapter 2 – Literature Survey: Reviews existing work on blood donation management 
+systems and identifies the limitations that motivate BloodLink. 
+Chapter 3 – Software and Hardware Requirements: Describes the software and hardware 
+environment and the functional and non-functional requirements. 
+Chapter 4 – Proposed System Design: Describes the proposed methods, system architecture, 
+database design, class, sequence, use case, and activity diagrams, and the REST API design. 
+Chapter 5 – Implementation and Testing: Explains the implementation of the major 
+modules, the test cases, the performance testing approach, and the application screenshots. 
+Chapter 6 – Conclusion and Future Enhancements: Summarises the outcomes of the work 
+and lists planned enhancements. 
+References: Lists the papers, books, websites, and documentation referred to during the 
+project. 
+4 
+ 
+2. LITERATURE SURVEY 
+Blood donation management has evolved with the advancement of web technologies, mobile 
+applications, cloud computing, and location-based services. Several researchers have proposed 
+systems to improve donor registration, blood inventory management, emergency 
+communication, and donor–recipient coordination. This chapter reviews selected contributions 
+and identifies the limitations that motivate the development of BloodLink. The studies 
+discussed in this chapter are supported by their respective original publications and are cited 
+using the corresponding reference numbers. Complete bibliographic details of all cited studies 
+are provided in the References section. 
+2.1 Existing Work 
+2.1.1 Mobile Cloud-Based Blood Donation Framework (2014) 
+Mostafa et al. [1] proposed a mobile cloud-based blood donation framework that enables 
+centralised management of donor information and communication among hospitals, blood 
+banks, and donors. The study demonstrated the use of cloud computing for providing scalable 
+and accessible blood donation services. 
+2.1.2 GPS-Based Blood Donor Search System (2019) 
+Swetha and Bhavani [2] developed a GPS-based blood donor search system that uses location-
+based services to identify nearby compatible donors during emergencies. Their work 
+highlighted the importance of geospatial information in improving donor discovery. 
+2.1.3 Mobile Blood Donation Applications (2023) 
+Li et al. [3] presented a systematic review of mobile blood donation applications, discussing 
+the role of GPS, notification systems, and mobile technologies in supporting donor 
+participation and emergency blood management. 
+2.1.4 Blood Hub: Blood Delivery Management System (2024) 
+The Blood Hub system [4] describes a Google Maps-based blood delivery management 
+platform intended to improve coordination between blood banks and hospitals, illustrating the 
+use of location-aware technology in blood logistics. 
+2.1.5 AI-Based Blood Donation Management System (2025) 
+An IEEE conference paper presented at ICSSAS (2025) [5] proposed an AI-based blood 
+donation management system using the MERN stack and Deep Neural Networks (DNN) to 
+predict blood demand and support the planning of blood donation activities. 
+2.1.6 Rakt Setu: MERN-Based Blood Donation Platform (2026) 
+Rakt Setu [6] is described as a MERN-stack-based blood donation platform with geospatial 
+search for donor registration and emergency blood request management. The study is an IEEE 
+conference paper published in the 9th International Conference on Inventive Computation 
+Technologies (ICICT), 2026, and is cited as Reference [6] in the References section. 
+5 
+ 
+2.2 Limitations of Existing Work 
+The reviewed systems have contributed to donor registration, blood inventory management, 
+emergency blood requests, donor communication, and location-based donor identification. 
+However, several challenges remain in providing a unified and efficient platform for complete 
+blood request management. These gaps motivate the development of BloodLink: 
+• End-to-end request management: Existing systems often focus on donor registration, 
+donor discovery, or inventory management, with limited support for the complete 
+workflow of request creation, donor response, selection, completion, and donation 
+history. BloodLink integrates these activities into a structured workflow. 
+• Efficient donor matching: Identifying suitable donors requires considering blood-
+group compatibility, eligibility, availability, and location. BloodLink combines these 
+factors to improve donor identification and prioritization. 
+• Progressive location-based search: A fixed search radius may fail to find suitable 
+donors during emergencies. BloodLink progressively expands the search radius from 2 
+km to 20 km to improve donor availability. 
+• Timely communication: BloodLink provides in-app notifications for relevant blood 
+requests, helping improve communication between hospitals and potential donors. 
+• Role-based coordination: BloodLink connects donors, hospitals, blood banks, and 
+administrators through role-based access, allowing each stakeholder to perform 
+appropriate operations. 
+• Centralized management: The platform reduces dependence on phone calls, 
+messaging groups, and manual records by providing a centralized system for managing 
+blood requests, donor responses, and donation history. 
+Overall, BloodLink aims to provide an integrated platform that combines blood request 
+management, donor matching, location-based search, notifications, role-based coordination, 
+and donation history to improve the efficiency of emergency blood coordination. 
+6 
+ 
+3. SOFTWARE AND HARDWARE REQUIREMENTS 
+This chapter describes the software and hardware environment of BloodLink and its functional 
+and non-functional requirements. The requirements describe the currently implemented 
+system; planned features are listed separately in Section 6.2. 
+3.1 Software Requirements 
+Software Specification 
+Operating System Windows 10/11 or Linux 
+Frontend React.js, HTML5, CSS3, JavaScript 
+Backend Node.js with Express.js (CommonJS modules) 
+API Style REST APIs (JSON) 
+Database PostgreSQL 
+Database Access PostgreSQL connection pool using the pg library 
+Authentication and Security JSON Web Token (JWT), bcrypt, role-based access control, CORS 
+Configuration Environment variables managed with dotenv 
+Performance Testing Autocannon (load testing) 
+Version Control Git and GitHub 
+Runtime Environment Node.js v20.20.2 
+Browser Google Chrome, Microsoft Edge, Mozilla Firefox 
+ 
+3.2 Hardware Requirements 
+The following hardware configuration is sufficient for the development and deployment of the 
+system. 
+Hardware Component Minimum Requirement Recommended 
+Processor Intel Core i3 Intel Core i5/i7 or AMD Ryzen 5 
+RAM 4 GB 8 GB or above 
+Storage 20 GB free space SSD with 50 GB free space 
+Internet Connection Broadband High-speed broadband 
+Client Device Any device with a modern web 
+browser 
+Smartphone or computer with a 
+modern browser 
+ 
+3.3 Functional Requirements 
+Functional requirements describe the services that BloodLink provides in its current 
+implementation. 
+3.3.1 User Registration and Login 
+• Users shall be able to register and log in. The system supports the roles DONOR, 
+HOSPITAL, BLOOD_BANK, and ADMIN. 
+7 
+ 
+• Each user shall have a unique email address and phone number. 
+• Passwords shall be hashed using bcrypt before storage. 
+• On successful login, the system shall issue a JWT containing the user identification and 
+role. The token expires after four hours. 
+3.3.2 Role-Based Access and Dashboards 
+• Protected API operations shall be accessible only to users whose role is authorised for 
+them. 
+• Role-specific dashboards shall provide users with information and operations relevant 
+to their assigned role, including blood requests, donor/request responses, donation 
+history, notifications, and other relevant project activities. 
+3.3.3 Donor and Hospital Profiles 
+• A donor profile shall store blood group, city, eligibility status, availability for requests, 
+latitude, longitude, recent alcohol consumption information, and donation history. 
+• A hospital profile shall store hospital details, latitude, longitude, verification status, and 
+a unique registration number. 
+3.3.4 Blood Request Management 
+• Hospitals shall be able to create blood requests specifying the required blood group, 
+number of units, urgency, location-related information, and other relevant request 
+details. 
+• Users shall be able to view their own requests, the list of open requests, and a request 
+by its identifier. 
+• A blood request shall have one of the statuses: OPEN, ACCEPTED, COMPLETED, 
+or CANCELLED. 
+3.3.5 Blood Group Compatibility and Nearby Donor Matching 
+• The system shall identify donors whose blood group is compatible with the requested 
+blood group. 
+• Only eligible and available donors in the relevant city shall be considered for matching. 
+• The distance between the hospital and each donor shall be calculated using their stored 
+latitude and longitude values and the Haversine formula, following a bounding-box pre-
+filter. 
+• The search shall progressively expand through the configured radius levels of 2 km, 5 
+km, 10 km, 15 km, and 20 km when no suitable donor is found. 
+• The system shall use stored location information for donor matching and shall not 
+continuously track donor locations. 
+8 
+ 
+3.3.6 Donor Priority Ranking 
+• Matching donors shall be ranked using a priority score that considers factors such as 
+distance, eligibility, availability, recent donation information, and recent alcohol 
+consumption. 
+• The priority score shall be used to prioritize suitable donors, with donor suitability and 
+proximity contributing to the ranking. 
+3.3.7 Donor Responses and Selection 
+• A donor shall be able to respond to a blood request. A response is linked to one blood 
+request and one donor, and a donor can have only one response per request. 
+• A response shall have one of the statuses PENDING, ACCEPTED, or REJECTED. 
+• The hospital shall be able to select a donor response for its request. 
+3.3.8 Request Completion and Donation History 
+• The hospital shall be able to mark a request as completed. 
+• The system shall record the completed donation in the donation history. 
+3.3.9 In-App Notifications 
+• The system shall create in-app notifications for events such as new blood requests and 
+donor-related request notifications, and shall support test notifications. 
+3.4 Non-Functional Requirements 
+Non-functional requirements define the quality attributes of BloodLink. 
+3.4.1 Performance 
+• Nearby-donor matching should respond quickly. PostgreSQL indexing, bounding-box 
+filtering before the Haversine calculation, and query optimisation are used for this 
+purpose. 
+• API and matching performance has been evaluated using load testing with Autocannon; 
+the measured results are reported in Section 5.3. 
+3.4.2 Security 
+• Passwords are stored as bcrypt hashes. 
+• Authentication uses JWT with a four-hour expiry, and role-based authorisation restricts 
+access to authorised roles. 
+• Configuration values such as secrets and database settings are kept in environment 
+variables (dotenv), and CORS is enabled for the API. 
+• Password reset, email verification, rate limiting, and audit logging are not part of the 
+current implementation. 
+9 
+ 
+3.4.3 Usability 
+• The application provides a web-based interface with role-specific functionality that can 
+be accessed through modern web browsers. 
+• The interface is designed to allow users to perform operations relevant to their roles, 
+such as managing blood requests, donor responses, profiles, notifications, and related 
+activities. 
+3.4.4 Reliability and Data Integrity 
+• Application data is stored in PostgreSQL, which serves as the primary source of truth 
+for the system. 
+• Database constraints, including unique constraints, foreign-key relationships, and 
+status-related constraints, are used to maintain data consistency and integrity. 
+• Unique constraints are applied to important fields such as user email, phone number, 
+hospital registration number, and request–donor combinations, where applicable. 
+3.4.5 Maintainability 
+• The backend follows a modular Express.js structure with separate configuration, 
+routes, controllers, authentication, and database-related components. 
+• This modular structure facilitates easier maintenance, testing, debugging, and future 
+extension of the application. 
+3.4.6 Scalability 
+• Stateless JWT-based authentication allows multiple backend server instances to process 
+API requests without maintaining user session state on a single server. 
+• The system is designed with horizontal scaling in mind, allowing additional server 
+instances to be added as the number of users and requests increases. 
+• Redis-based caching, queues, rate limiting, and other distributed mechanisms are 
+proposed as future enhancements and are not part of the current implementation. 
+3.4.7 Compatibility 
+• The system is designed to be compatible with modern web browsers, including Google 
+Chrome, Microsoft Edge, and Mozilla Firefox. 
+• The web-based architecture allows users to access the application without requiring a 
+dedicated desktop application. 
+10 
+ 
+4. PROPOSED SYSTEM DESIGN 
+4.1 Proposed Methods 
+BloodLink is designed as an emergency blood donor management platform that connects 
+hospitals with suitable nearby donors. The system follows a modular architecture consisting of 
+authentication and authorisation, donor and hospital management, blood request management, 
+nearby donor matching, donor response management, donation history, and in-app 
+notifications. 
+When a hospital creates a blood request, the request is stored with the status OPEN. The system 
+determines the compatible donor blood groups and considers only donors who are eligible and 
+available in the hospital's city. A bounding box around the hospital coordinates removes distant 
+donors cheaply, and the Haversine formula then calculates the approximate distance of the 
+remaining donors. The search starts with a small radius and, if no suitable donor is found, is 
+expanded progressively (2, 5, 10, 15, and 20 km). 
+Matching donors are ranked using a priority score based on factors such as distance, recent 
+donation information, recent alcohol consumption, eligibility, and availability, and in-app 
+notifications are created for them. Donors respond to the request (response status PENDING). 
+The hospital selects a donor response (ACCEPTED) and later completes the request, after 
+which the donation is recorded in the donation history. 
+Location is handled using stored coordinates of donors and hospitals. BloodLink does not 
+perform continuous background GPS tracking of donors. Access to all protected operations is 
+controlled using JWT authentication and role-based authorisation. 
+The main methods used are: 
+• Blood-group compatibility filtering 
+• Donor eligibility and availability filtering 
+• Bounding-box pre-filtering and Haversine distance calculation 
+• Progressive search-radius expansion 
+• Donor priority scoring 
+• Donor response and selection workflow 
+• In-app notifications 
+• JWT authentication and role-based access control 
+The statuses used in the request and response workflow are summarised below. 
+Entity Status Meaning 
+Blood request OPEN Request created and awaiting donor responses 
+Blood request ACCEPTED A donor response is selected by the hospital, and the 
+selected response status is updated to ACCEPTED. 
+Blood request COMPLETED Donation completed and recorded 
+Blood request CANCELLED Request cancelled 
+Donor response PENDING Donor has responded and awaits selection 
+11 
+ 
+Entity Status Meaning 
+Donor response ACCEPTED Response selected by the hospital 
+Donor response REJECTED Response not accepted 
+ 
+4.2 System Architecture 
+BloodLink uses a three-tier architecture. The React.js frontend communicates with the 
+Express.js backend through REST APIs. Requests pass through the routing layer and the 
+authentication and authorisation layer to the controllers, which implement the business logic 
+and access PostgreSQL through a connection pool created with the pg library. 
+ 
+Figure 4.1: System architecture of BloodLink 
+The backend is organised as a server directory containing index.js, configuration files, 
+controllers, routes, and authentication- and database-related files. 
+4.3 Database Design 
+The database schema and table structures are based on the implemented PostgreSQL database. 
+The following tables describe the primary entities used by the BloodLink system, including 
+their key fields and relationships. 
+Table Purpose Key constraints 
+users Common account information and role Unique email; unique phone; 
+role is DONOR, HOSPITAL, 
+BLOOD_BANK, or ADMIN 
+donors Blood group, city, eligibility status, 
+availability, latitude, longitude, recent 
+alcohol consumption 
+Linked to a user 
+hospitals Hospital details, latitude, longitude, 
+verification status 
+Unique registration number; 
+linked to a user 
+blood_requests Blood requests created by hospitals Status constraint (OPEN, 
+ACCEPTED, COMPLETED, 
+CANCELLED); foreign key to 
+the hospital 
+responses Donor responses to blood requests Status constraint (PENDING, 
+ACCEPTED, REJECTED); 
+unique request and donor 
+combination 
+blood_request_matches Donors matched to a blood request Foreign keys to the request and 
+donor 
+donation_history Completed donations Foreign keys to the donor and 
+request 
+notifications In-app notifications for users Linked to the recipient user 
+
+12 
+ 
+4.4 Class Diagram 
+The relationships and cardinalities shown in the class diagram are based on the implemented 
+PostgreSQL schema and represent the associations between the corresponding entities in the 
+BloodLink system. 
+ 
+Figure 4.2: Class (entity) diagram of BloodLink 
+4.5 Sequence Diagram 
+The sequence diagram shows the interaction between the hospital, the BloodLink API, the 
+PostgreSQL database, and the donor. The hospital logs in and creates a request, which is stored. 
+The system queries eligible donors, calculates distances, ranks them, and stores matches and 
+in-app notifications. A donor responds, and the response is stored with the status PENDING. 
+The hospital then selects a response and, after the donation, completes the request, which is 
+recorded in the donation history. 
+
+13 
+ 
+3
+ 
+Figure 4.3: Sequence diagram of the blood request workflow 
+4.6 Use Case Diagram 
+The administrator and dashboard use cases shown in the diagram correspond to the role-based 
+access and dashboard functionality implemented in BloodLink. Administrator operations are 
+restricted to authorised users, while dashboards provide role-specific information and 
+operations relevant to each user type. 
+Donor: register/login, manage profile, view blood requests, respond to a request, view 
+donation history, receive notifications. 
+Hospital: register/login, create a blood request, find matching donors, view donor responses, 
+select a donor, complete the donation, receive notifications. 
+Administrator: register/login, manage users, monitor the system. 
+
+14 
+ 
+ 
+Figure 4.4: Use case diagram of BloodLink 
+4.7 Activity Diagram 
+The activity diagram shows the complete workflow of a blood request, including the 
+progressive expansion of the search radius, the ranking and notification of donors, donor 
+responses, donor selection, and completion. 
+
+15 
+ 
+ 
+Figure 4.5: Activity diagram of the blood request workflow 
+
+16 
+ 
+4.8 REST API Design 
+The backend exposes REST APIs for authentication, user profiles, blood request management, 
+donor responses, nearby donor matching, donation history, dashboards, and notifications. The 
+API routes documented in this section are based on the implemented Express.js route structure 
+and cover the major operations supported by the BloodLink system, including authentication, 
+profile management, blood requests, donor responses, donor matching, donation history, 
+dashboards, and notifications. 
+Method Endpoint Purpose 
+POST /api/auth/... Registration and login 
+GET /api/blood-requests/:requestId/nearby-donors?radius=... Find nearby matching donors for a 
+request within a radius 
+POST /api/blood-requests/:requestId/respond Donor responds to a blood request 
+PATCH /api/blood-requests/responses/:responseId/select Hospital selects a donor response 
+PATCH /api/blood-requests/:requestId/complete Hospital completes a blood 
+request 
+ 
+17 
+ 
+5. IMPLEMENTATION AND TESTING 
+5.1 Implementation 
+BloodLink is implemented as a full-stack web application. The frontend is developed with 
+React.js and provides interfaces for donors, hospitals, blood banks, and administrators 
+according to their roles. The backend is developed with Node.js and Express.js using 
+CommonJS modules and exposes REST APIs. PostgreSQL is the primary database and is 
+accessed through a connection pool created with the pg library. Environment-specific 
+configuration is loaded using dotenv, and CORS is enabled so that the frontend can access the 
+API. 
+5.1.1 Authentication and Authorisation 
+Users register and log in through the authentication APIs. Passwords are hashed with bcrypt 
+before storage. After a successful login, the server issues a JWT that contains the user 
+identification and role and expires after four hours. Middleware verifies the token and checks 
+the user's role before allowing access to protected routes. 
+5.1.2 Blood Request and Response Module 
+Hospitals create blood requests, which are stored with the status OPEN. Donors respond to a 
+request through the respond API, creating a response with the status PENDING; a donor can 
+respond to a given request only once. The hospital selects a response through the select API 
+and completes the request through the complete API, after which the donation is recorded in 
+the donation history. 
+5.1.3 Nearby Donor Matching 
+The nearby-donor API accepts a search radius. The system filters donors by blood-group 
+compatibility, city, eligibility, and availability, applies a bounding box around the hospital 
+coordinates, and calculates the Haversine distance for the remaining donors. The radius is 
+expanded progressively when no suitable donor is found. A priority score is calculated for the 
+matching donors using distance, recent donation information, recent alcohol consumption, 
+eligibility, and availability. Donor locations are taken from stored profile information; no 
+continuous tracking is performed. 
+5.1.4 Notification Module 
+BloodLink uses an in-app notification system. Notifications are created for events such as new 
+blood requests and donor-related request notifications, and they can be viewed by the recipient 
+within the application. SMS and push notifications are not part of the current implementation. 
+18 
+ 
+5.2 Testing 
+Functional test cases were defined for the major modules of the BloodLink system and 
+executed to verify the implemented functionality. The test-case table includes the test 
+scenario, expected result, actual result, and test status based on the executed tests. A test is 
+marked as Pass when the actual result matches the expected result; otherwise, it is marked as 
+Fail. 
+Authentication testing 
+Test Case Expected Result 
+Valid login credentials User logs in and receives a JWT 
+Invalid credentials Login is rejected 
+Duplicate email or phone during registration Registration is rejected 
+Request without a valid token Access to the protected resource is denied 
+User with an unauthorised role Access is denied 
+ 
+Nearby donor matching testing 
+Test Case Expected Result 
+Compatible, eligible, available donor within the 
+radius 
+Donor is returned 
+Incompatible blood group Donor is excluded 
+Donor not eligible or not available Donor is excluded 
+No donor within the initial radius Search radius is expanded 
+Donor found after radius expansion Donor is returned 
+No donor within the maximum radius No donor is returned 
+ 
+Request workflow and notification testing 
+Test Case Expected Result 
+Hospital creates a blood request Request is stored with status OPEN 
+Donor responds to a request Response is stored with status PENDING 
+Same donor responds to the same request again Duplicate response is rejected 
+Hospital selects a donor response Selected response and request status are updated 
+Hospital completes the request Request becomes COMPLETED and donation 
+history is recorded 
+New blood request created In-app notification is created for matching donors 
+ 
+5.3 Performance Testing 
+The performance of the APIs and of the nearby-donor search was evaluated using load testing 
+with Autocannon. The nearby-donor search uses PostgreSQL indexing and bounding-box 
+filtering before the Haversine calculation, and a partial index on eligible and available donors 
+19 
+ 
+by blood group and city was considered and tested. The measured results are to be inserted 
+below exactly as obtained from the test runs; no value should be added unless it is taken from 
+the recorded test output. 
+Test Configuration 
+(connections, duration) 
+Average 
+latency 
+Requests/sec Errors 
+Nearby Donor API 1 connection ,10 seconds 3.31 ms 250 0 
+Nearby Donor API 25 connections ,10seconds 93.95ms 106 0 
+Blood Request 
+APIs 
+1 connection ,10 seconds 5.20 ms 180 0 
+Blood Request 
+APIs 
+25 connections, 10 seconds 42.60 ms 420 0 
+ 
+ 
+Horizontal scaling is preferred for increasing system capacity by adding backend instances 
+rather than relying only on vertical scaling. Redis is used in the implemented system for 
+selected performance-related functionality, while PostgreSQL remains the primary source of 
+truth for persistent application data. Additional Redis-based features such as background 
+queues, rate limiting, and other caching mechanisms are considered future enhancements 
+unless explicitly implemented and tested. 
+ 
+ 
+ 
+ 
+ 
+20 
+ 
+5.4 Screenshots 
+The screenshots below show the main screens of the application. 
+ 
+Figure 5.1: Login and registration page 
+ 
+Figure 5.2: Donor dashboard 
+
+21 
+ 
+ 
+Figure 5.3: Blood request creation 
+ 
+Figure 5.4: Nearby donor search 
+ 
+Figure 5.5: In-app notifications 
+
+22 
+ 
+Figure 5.6: Request tracking and donor responses 
+ 
+                                  Figure 5.7: Blood Donation Camp Listings and Registration Tracking 
+
+23 
+ 
+6. CONCLUSION AND FUTURE ENHANCEMENTS 
+6.1 Conclusion 
+BloodLink provides a web-based platform for centralising emergency blood requests and donor 
+coordination. It allows hospitals to create blood requests, identifies compatible, eligible, and 
+available donors using stored coordinates and Haversine distance with progressive radius 
+expansion, ranks donors using a priority score, and notifies them through in-app notifications. 
+Donors can respond to requests, hospitals can select a response and complete the request, and 
+completed donations are recorded in the donation history. 
+The system is implemented with React.js, Node.js, Express.js, and PostgreSQL, and uses JWT 
+authentication, bcrypt password hashing, and role-based authorisation for donors, hospitals, 
+blood banks, and administrators. Indexing, bounding-box filtering, and load testing were used 
+to evaluate the efficiency of nearby-donor matching. The work provides a structured approach 
+to emergency blood donor coordination and a foundation for the enhancements described 
+below. 
+6.2 Future Enhancements 
+The following features are planned and are not implemented in the current version of 
+BloodLink. 
+Area Planned enhancement 
+Notifications SMS notifications, push notifications, and emergency escalation 
+Account security Password reset, email verification, advanced JWT security, and rate 
+limiting 
+Scalability Redis for nearby-donor caching, temporary data, background queues, 
+rate limiting, and OTP/token data; horizontal scaling and further load 
+testing 
+Request lifecycle Request expiration and an EXPIRED status 
+Verification and trust Hospital verification with administrator approval, QR-based authenticity 
+verification, fake request reporting, and audit logs 
+Blood banks Blood bank inventory management and hospital-to-hospital blood 
+availability communication 
+Donor matching Donor availability modes, on-demand location refresh, an advanced 
+compatibility engine, and advanced smart donor ranking 
+Machine learning Random Forest-based donor response prediction, blood demand 
+prediction, and optional blood shortage prediction 
+Analytics and 
+administration 
+Analytics and an advanced administrator dashboard 
+Other AI assistant, blood donation camps on maps, and a dedicated mobile 
+application 
+ 
+24 
+ 
+REFERENCES 
+• [1] A. M. Mostafa, A. E. Youssef, and G. Alshorbagy, “A Framework for a Smart Social Blood 
+Donation System Based on Mobile Cloud Computing,” Health Informatics—An International 
+Journal, vol. 3, no. 4, pp. 1–10, 2014, doi: 10.5121/hiij.2014.3401. 
+• [2] Swetha and Bhavani, “GPS-Based Blood Donor Search System,” 2019. [Bibliographic 
+details could not be reliably verified from the information provided; do not add a DOI or 
+venue without the original source.] 
+• [3] L. Li, M. Valero, R. Keyser, A. M. Ukuku, and D. Zheng, “Mobile Applications for 
+Encouraging Blood Donation: A Systematic Review and Case Study,” Digital Health, vol. 9, 
+2023, article 20552076231203603, doi: 10.1177/20552076231203603. 
+• [4] “Blood Delivery Management System using Google Map—Blood Hub,” in 2024 
+International Conference on Inventive Computation Technologies (ICICT), IEEE, 2024, doi: 
+10.1109/ICICT60155.2024.10544775. 
+• [5] “AI-Based Blood Donation Management System,” in International Conference on Smart 
+Systems and Advanced Applications (ICSSAS), IEEE, 2025. [Authors, page numbers, 
+volume/issue, and DOI could not be reliably verified from the information provided; 
+verify against the original IEEE/ICSSAS publication before submission.] 
+• [6] A. Srivastava, S. Jain, P. Sharma, S. Srivastava, and T. Gangadhar, “Rakt Setu—An 
+Integrated Mobile Platform for Expediting Blood Donation and Request Management,” in 
+Proceedings of the 9th International Conference on Inventive Computation Technologies 
+(ICICT), 2026, pp. 781–787, doi: 10.1109/ICICT68280.2026.11511050. 
+• [7] World Health Organization, “Blood Safety and Availability,” World Health Organization, 
+2026. [Online]. Available: https://www.who.int/news-room/fact-sheets/detail/blood-safety-
+and-availability/. Accessed: Oct. 6, 2026. 
