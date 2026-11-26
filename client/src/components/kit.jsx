@@ -37,7 +37,10 @@ export function ProgressBar({ value, max = 100, tone = "primary" }) {
   const pct = Math.min(100, Math.round((value / max) * 100) || 0);
   return (
     <div className="progress">
-      <div className={`progress__bar progress__bar--${tone}`} style={{ width: `${pct}%` }} />
+      <div
+        className={`progress__bar progress__bar--${tone}`}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -65,7 +68,13 @@ export function Breadcrumbs({ items }) {
         <span key={i} className="breadcrumbs__item">
           {i > 0 && <span className="breadcrumbs__sep">/</span>}
           {item.href ? (
-            <a href={item.href} onClick={(e) => { e.preventDefault(); item.onClick?.(); }}>
+            <a
+              href={item.href}
+              onClick={(e) => {
+                e.preventDefault();
+                item.onClick?.();
+              }}
+            >
               {item.label}
             </a>
           ) : (
@@ -80,7 +89,12 @@ export function Breadcrumbs({ items }) {
 /* =========================================================
    Data display
    ========================================================= */
-export function SearchBar({ value, onChange, placeholder = "Search…", onSubmit }) {
+export function SearchBar({
+  value,
+  onChange,
+  placeholder = "Search…",
+  onSubmit,
+}) {
   return (
     <form
       className="searchbar"
@@ -100,7 +114,13 @@ export function SearchBar({ value, onChange, placeholder = "Search…", onSubmit
   );
 }
 
-export function FilterSelect({ label, value, onChange, options, allLabel = "All" }) {
+export function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  allLabel = "All",
+}) {
   return (
     <label className="filter-select">
       <span className="filter-select__label">{label}</span>
@@ -120,14 +140,22 @@ export function FilterSelect({ label, value, onChange, options, allLabel = "All"
   );
 }
 
-export function Table({ columns, rows, rowKey = "id", emptyMessage = "No records found." }) {
+export function Table({
+  columns,
+  rows,
+  rowKey = "id",
+  emptyMessage = "No records found.",
+}) {
   return (
     <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col.key} style={col.align ? { textAlign: col.align } : undefined}>
+              <th
+                key={col.key}
+                style={col.align ? { textAlign: col.align } : undefined}
+              >
                 {col.label}
               </th>
             ))}
@@ -144,7 +172,10 @@ export function Table({ columns, rows, rowKey = "id", emptyMessage = "No records
             rows.map((row) => (
               <tr key={rowKey(row)}>
                 {columns.map((col) => (
-                  <td key={col.key} style={col.align ? { textAlign: col.align } : undefined}>
+                  <td
+                    key={col.key}
+                    style={col.align ? { textAlign: col.align } : undefined}
+                  >
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}
@@ -161,7 +192,12 @@ export function Pagination({ page, pageSize, total, onChange }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pages = [];
   for (let i = 1; i <= totalPages; i += 1) {
-    if (totalPages > 7 && i > 3 && i < totalPages - 1 && Math.abs(i - page) > 1) {
+    if (
+      totalPages > 7 &&
+      i > 3 &&
+      i < totalPages - 1 &&
+      Math.abs(i - page) > 1
+    ) {
       if (pages[pages.length - 1] !== "…") pages.push("…");
       continue;
     }
@@ -171,7 +207,9 @@ export function Pagination({ page, pageSize, total, onChange }) {
   return (
     <div className="pagination">
       <span className="pagination__info">
-        {total > 0 ? `${(page - 1) * pageSize + 1}–${Math.min(total, page * pageSize)} of ${total}` : "No results"}
+        {total > 0
+          ? `${(page - 1) * pageSize + 1}–${Math.min(total, page * pageSize)} of ${total}`
+          : "No results"}
       </span>
       <div className="pagination__controls">
         <Button
@@ -184,7 +222,9 @@ export function Pagination({ page, pageSize, total, onChange }) {
         </Button>
         {pages.map((p, i) =>
           p === "…" ? (
-            <span key={`e${i}`} className="pagination__ellipsis">…</span>
+            <span key={`e${i}`} className="pagination__ellipsis">
+              …
+            </span>
           ) : (
             <button
               key={p}
@@ -207,7 +247,6 @@ export function Pagination({ page, pageSize, total, onChange }) {
     </div>
   );
 }
-
 export function Skeleton({ count = 3, height = 90 }) {
   return (
     <div className="skeleton-list">
@@ -239,7 +278,12 @@ export function BarChart({ data, height = 220, color = "var(--primary)" }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <div className="chart" style={{ height }}>
-      <svg viewBox={`0 0 ${data.length * 60} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+      <svg
+        viewBox={`0 0 ${data.length * 60} ${height}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+      >
         {data.map((d, i) => {
           const h = (d.value / max) * (height - 30);
           return (
@@ -253,10 +297,22 @@ export function BarChart({ data, height = 220, color = "var(--primary)" }) {
                 fill={color}
                 opacity={0.85}
               />
-              <text x={17} y={-h - 6} textAnchor="middle" fontSize="11" fill="var(--muted)">
+              <text
+                x={17}
+                y={-h - 6}
+                textAnchor="middle"
+                fontSize="11"
+                fill="var(--muted)"
+              >
                 {d.value}
               </text>
-              <text x={17} y={16} textAnchor="middle" fontSize="11" fill="var(--muted)">
+              <text
+                x={17}
+                y={16}
+                textAnchor="middle"
+                fontSize="11"
+                fill="var(--muted)"
+              >
                 {d.label}
               </text>
             </g>
@@ -272,16 +328,40 @@ export function LineChart({ data, height = 220, color = "var(--primary)" }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   const stepX = width / (data.length - 1 || 1);
   const points = data
-    .map((d, i) => `${i * stepX},${height - 24 - (d.value / max) * (height - 44)}`)
+    .map(
+      (d, i) => `${i * stepX},${height - 24 - (d.value / max) * (height - 44)}`,
+    )
     .join(" ");
   return (
     <div className="chart" style={{ height }}>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-        <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+      >
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+        />
         {data.map((d, i) => (
           <g key={i}>
-            <circle cx={i * stepX} cy={height - 24 - (d.value / max) * (height - 44)} r="3.5" fill={color} />
-            <text x={i * stepX} y={height - 8} textAnchor="middle" fontSize="11" fill="var(--muted)">
+            <circle
+              cx={i * stepX}
+              cy={height - 24 - (d.value / max) * (height - 44)}
+              r="3.5"
+              fill={color}
+            />
+            <text
+              x={i * stepX}
+              y={height - 8}
+              textAnchor="middle"
+              fontSize="11"
+              fill="var(--muted)"
+            >
               {d.label}
             </text>
           </g>
@@ -299,13 +379,22 @@ export function DonutChart({ data, size = 180 }) {
   const circ = 2 * Math.PI * radius;
   const segments = data.map((d, i) => {
     const len = (d.value / total) * circ;
-    const segOffset = data.slice(0, i).reduce((acc, prev) => acc + ((prev.value / total) * circ), 0);
+    const segOffset = data
+      .slice(0, i)
+      .reduce((acc, prev) => acc + (prev.value / total) * circ, 0);
     return { key: i, len, segOffset, d };
   });
   return (
     <div className="donut" style={{ width: size }}>
       <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="var(--neutral-soft)" strokeWidth="18" />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="var(--neutral-soft)"
+          strokeWidth="18"
+        />
         {segments.map((s) => {
           const seg = (
             <circle
@@ -323,10 +412,23 @@ export function DonutChart({ data, size = 180 }) {
           );
           return seg;
         })}
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="18" fontWeight="700" fill="var(--ink)">
+        <text
+          x={cx}
+          y={cy - 4}
+          textAnchor="middle"
+          fontSize="18"
+          fontWeight="700"
+          fill="var(--ink)"
+        >
           {total}
         </text>
-        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="11" fill="var(--muted)">
+        <text
+          x={cx}
+          y={cy + 14}
+          textAnchor="middle"
+          fontSize="11"
+          fill="var(--muted)"
+        >
           total
         </text>
       </svg>
@@ -360,7 +462,13 @@ export function ConfirmDialog({
       <div className="modal modal--sm" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h3>{title}</h3>
-          <button className="modal__close" onClick={onCancel} aria-label="Close">×</button>
+          <button
+            className="modal__close"
+            onClick={onCancel}
+            aria-label="Close"
+          >
+            ×
+          </button>
         </div>
         <div className="modal__body">
           <p style={{ color: "var(--text)" }}>{message}</p>
@@ -384,7 +492,9 @@ export function Modal({ title, children, footer, onClose }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h3>{title}</h3>
-          <button className="modal__close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal__close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
         </div>
         <div className="modal__body">{children}</div>
         {footer && <div className="modal__footer">{footer}</div>}
@@ -393,7 +503,13 @@ export function Modal({ title, children, footer, onClose }) {
   );
 }
 
-export function UploadField({ label, accept = "image/*", onFile, preview, hint }) {
+export function UploadField({
+  label,
+  accept = "image/*",
+  onFile,
+  preview,
+  hint,
+}) {
   const [error, setError] = useState("");
   const handleChange = (e) => {
     const file = e.target.files?.[0];
@@ -407,7 +523,12 @@ export function UploadField({ label, accept = "image/*", onFile, preview, hint }
   };
   return (
     <Field label={label} hint={hint} error={error}>
-      <input type="file" accept={accept} onChange={handleChange} className="input" />
+      <input
+        type="file"
+        accept={accept}
+        onChange={handleChange}
+        className="input"
+      />
       {preview && (
         <div className="image-preview">
           <img src={preview} alt="Preview" />
@@ -423,7 +544,11 @@ export function ImagePreview({ src, alt = "Image", onRemove }) {
     <div className="image-preview image-preview--block">
       <img src={src} alt={alt} />
       {onRemove && (
-        <button className="image-preview__remove" onClick={onRemove} aria-label="Remove">
+        <button
+          className="image-preview__remove"
+          onClick={onRemove}
+          aria-label="Remove"
+        >
           ×
         </button>
       )}
@@ -483,7 +608,10 @@ export function MapView({ markers = [], center, title = "Map" }) {
         <div className="map__road map__road--v" style={{ left: "68%" }} />
         <div className="map__water" />
         {center && (
-          <div className="map__center" style={{ left: `${50}%`, top: `${50}%` }}>
+          <div
+            className="map__center"
+            style={{ left: `${50}%`, top: `${50}%` }}
+          >
             📍
           </div>
         )}
@@ -510,7 +638,11 @@ export function PageSkeleton({ lines = 6 }) {
   return (
     <div className="page">
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="skeleton" style={{ height: i === 0 ? 40 : 90 }} />
+        <div
+          key={i}
+          className="skeleton"
+          style={{ height: i === 0 ? 40 : 90 }}
+        />
       ))}
     </div>
   );

@@ -8,12 +8,7 @@ export function Button({
   type = "button",
   ...props
 }) {
-  const classes = [
-    "btn",
-    `btn--${variant}`,
-    `btn--${size}`,
-    className,
-  ]
+  const classes = ["btn", `btn--${variant}`, `btn--${size}`, className]
     .filter(Boolean)
     .join(" ");
   return (
