@@ -217,6 +217,14 @@ function Router() {
     }
   }, [isAuthenticated, isPortalRoute, first]);
 
+  // The app starts at the login page: unauthenticated visitors on the root
+  // path are sent to /login instead of the public home page.
+  useEffect(() => {
+    if (!isAuthenticated && route.path === "/") {
+      navigate("/login");
+    }
+  }, [isAuthenticated, route.path]);
+
   // Wait for the initial profile fetch before deciding where to send the user.
   if (loading) {
     return (

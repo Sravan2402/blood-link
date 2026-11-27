@@ -6,7 +6,7 @@ import { Avatar } from "./kit";
 import NotificationBell from "./NotificationBell";
 
 export default function PortalLayout({ children }) {
-  const { user, role, roleLabel, logout, isDemo } = useAuth();
+  const { user, role, roleLabel, logout } = useAuth();
   const route = useRoute();
   const [open, setOpen] = useState(false);
 
@@ -61,11 +61,6 @@ export default function PortalLayout({ children }) {
           ))}
         </nav>
 
-        {isDemo && (
-          <p className="sidebar__demo-note">
-            Demo session — this portal connects to future backend endpoints.
-          </p>
-        )}
       </aside>
 
       <div className="portal-body">
