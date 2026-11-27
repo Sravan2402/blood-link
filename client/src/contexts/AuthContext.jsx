@@ -73,6 +73,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password, role) => {
+    // Blood Bank and Camp Organizer have no backend yet — always use a demo
+    // session so the full frontend is explorable without a server.
     if (!BACKEND_ROLES.includes(role)) {
       const user = makeDemoUser({ email }, role);
       const token = `demo-${role}-${Date.now()}`;
@@ -81,10 +83,22 @@ export function AuthProvider({ children }) {
       setUser(user);
       return user;
     }
-    const res = await api.post("/auth/login", { email, password, role });
-    localStorage.setItem("token", res.data.token);
-    setUser(res.data.user);
-    return res.data.user;
+    // Backend roles: try the real server first, but if it is unreachable
+    // (no server running), fall back to a demo session so the user can
+    // still navigate without credentials.
+    try {
+      const res = await api.post("/auth/login", { email, password, role });
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+      return res.data.user;
+    } catch {
+      const user = makeDemoUser({ email: email || `demo-${role.toLowerCase()}@bloodlink.test` }, role);
+      const token = `demo-${role}-${Date.now()}`;
+      localStorage.setItem("token", token);
+      localStorage.setItem("demoUser", JSON.stringify(user));
+      setUser(user);
+      return user;
+    }
   }, []);
 
   const register = useCallback(async (payload) => {

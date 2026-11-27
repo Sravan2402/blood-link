@@ -38,6 +38,22 @@ export default function Login() {
     }
   };
 
+  // Navigate into the selected role's portal with a demo session — no
+  // credentials or server required.
+  const handleDemo = async (role) => {
+    setError("");
+    setSubmitting(true);
+    try {
+      const user = await login("", "", role);
+      notify(`Welcome, ${user.full_name}!`, "success");
+      navigate("/app/dashboard");
+    } catch {
+      setError("Could not start a demo session.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -100,6 +116,19 @@ export default function Login() {
 
           <Button type="submit" className="auth-form__submit" disabled={submitting}>
             {submitting ? "Signing in…" : "Sign In"}
+          </Button>
+
+          <div className="auth-form__divider">
+            <span>or</span>
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="auth-form__submit"
+            onClick={() => handleDemo(form.role)}
+          >
+            Explore as Demo
           </Button>
 
           <p className="auth-form__switch">
