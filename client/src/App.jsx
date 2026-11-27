@@ -5,6 +5,7 @@ import { navigate, useRoute } from "./router/useRoute";
 import PublicLayout from "./components/PublicLayout";
 import PortalLayout from "./components/PortalLayout";
 import { Spinner } from "./components/ui";
+import MobileApp from "./pages/mobile/MobileApp";
 
 // ---- Auth pages ----
 import Login from "./pages/auth/Login";
@@ -210,12 +211,14 @@ function Router() {
   const isAuthRoute = ["login", "register", "forgot-password", "reset-password", "otp", "verify-email", "unauthorized", "verification-status"].includes(first);
   const isPortalRoute = first === "app";
 
+  const isMobileRoute = first === "m";
+
   // Redirect effects — must run unconditionally before any early return.
   useEffect(() => {
-    if (isAuthenticated && !isPortalRoute) {
+    if (isAuthenticated && !isPortalRoute && !isMobileRoute) {
       navigate("/app/dashboard");
     }
-  }, [isAuthenticated, isPortalRoute, first]);
+  }, [isAuthenticated, isPortalRoute, isMobileRoute, first]);
 
   // The app starts at the login page: unauthenticated visitors on the root
   // path are sent to /login instead of the public home page.
@@ -232,6 +235,11 @@ function Router() {
         <Spinner label="Loading BloodLink…" />
       </div>
     );
+  }
+
+  // Mobile prototype screens (/m/* routes) — rendered full-screen, no shell.
+  if (first === "m") {
+    return <MobileApp />;
   }
 
   // Auth pages (no layout shell).

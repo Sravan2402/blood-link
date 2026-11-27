@@ -8,11 +8,13 @@ import NotificationBell from "./NotificationBell";
 export default function PortalLayout({ children }) {
   const { user, role, roleLabel, logout } = useAuth();
   const route = useRoute();
+  // `open` = mobile drawer; `collapsed` = desktop mini-sidebar (icons only).
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const items = PORTAL_NAV[role] || [];
 
-  // Close the mobile sidebar whenever the route changes.
+  // Close the mobile drawer whenever the route changes.
   useEffect(() => {
     setOpen(false);
   }, [route.path]);
@@ -25,22 +27,24 @@ export default function PortalLayout({ children }) {
   const groups = [...new Set(items.map((i) => i.group))];
 
   return (
-    <div className="portal-shell">
-      <aside className={`sidebar ${open ? "sidebar--open" : ""}`}>
+    <div className={`portal-shell ${collapsed ? "portal-shell--collapsed" : ""}`}>
+      <aside
+        className={`sidebar ${open ? "sidebar--open" : ""} ${collapsed ? "sidebar--mini" : ""}`}
+      >
         <a
           className="sidebar__brand"
           href="#/app/dashboard"
           onClick={(e) => { e.preventDefault(); navigate("/app/dashboard"); }}
         >
           <span className="sidebar__mark">🩸</span>
-          <span>BloodLink</span>
+          {!collapsed && <span>BloodLink</span>}
         </a>
-        <span className="sidebar__role">{roleLabel} Portal</span>
+        {!collapsed && <span className="sidebar__role">{roleLabel} Portal</span>}
 
         <nav className="sidebar__nav">
           {groups.map((group) => (
             <div key={group} className="sidebar__group">
-              <span className="sidebar__group-label">{group}</span>
+              {!collapsed && <span className="sidebar__group-label">{group}</span>}
               {items
                 .filter((i) => i.group === group)
                 .map((item) => {
@@ -49,11 +53,12 @@ export default function PortalLayout({ children }) {
                     <a
                       key={item.path}
                       href={`#${item.path}`}
+                      title={item.label}
                       className={`sidebar__link ${active ? "sidebar__link--active" : ""}`}
                       onClick={(e) => { e.preventDefault(); navigate(item.path); }}
                     >
                       <span className="sidebar__icon">{item.icon}</span>
-                      {item.label}
+                      {!collapsed && <span className="sidebar__label">{item.label}</span>}
                     </a>
                   );
                 })}
@@ -61,13 +66,32 @@ export default function PortalLayout({ children }) {
           ))}
         </nav>
 
+        {!collapsed && (
+          <button
+            className="sidebar__collapse"
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse sidebar"
+          >
+            ‹
+          </button>
+        )}
       </aside>
+
+      {collapsed && (
+        <button
+          className="sidebar__expand"
+          onClick={() => setCollapsed(false)}
+          aria-label="Expand sidebar"
+        >
+          ›
+        </button>
+      )}
 
       <div className="portal-body">
         <header className="topnav">
           <button
             className="topnav__toggle"
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => (window.innerWidth <= 900 ? setOpen((o) => !o) : setCollapsed((c) => !c))}
             aria-label="Toggle sidebar"
           >
             ☰
@@ -87,13 +111,17 @@ export default function PortalLayout({ children }) {
             <NotificationBell />
             <div className="topnav__user">
               <Avatar name={user?.full_name} size={34} />
-              <div className="topnav__user-info">
-                <span className="topnav__user-name">{user?.full_name}</span>
-                <span className="topnav__user-role">{roleLabel}</span>
-              </div>
-              <button className="btn btn--ghost btn--sm" onClick={handleLogout}>
-                Logout
-              </button>
+              {!collapsed && (
+                <div className="topnav__user-info">
+                  <span className="topnav__user-name">{user?.full_name}</span>
+                  <span className="topnav__user-role">{roleLabel}</span>
+                </div>
+              )}
+              {!collapsed && (
+                <button className="btn btn--ghost btn--sm" onClick={handleLogout}>
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </header>

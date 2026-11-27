@@ -1,0 +1,630 @@
+/* =========================================================
+   BloodLink — Mobile Component Styles
+   Matches the prototype spec exactly.
+   ========================================================= */
+
+/* ---------- Screen frame ---------- */
+.m-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--page-bg);
+  min-height: 100svh;
+}
+.m-screen__body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px vertical;
+  padding: 10px 12px;
+}
+.m-screen__body > * {
+  margin-bottom: 8px;
+}
+.m-screen__body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- AppBar ---------- */
+.m-appbar {
+  background: var(--primary);
+  color: #fff;
+  padding: 22px 16px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.m-appbar__title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.m-appbar__back {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.m-appbar__titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.m-appbar__title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+  margin: 0;
+}
+.m-appbar__subtitle {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.95;
+  color: #fff;
+}
+
+/* ---------- BottomNav ---------- */
+.m-bottomnav {
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  padding: 8px 0 14px;
+  display: flex;
+  justify-content: space-around;
+}
+.m-bottomnav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex: 1;
+}
+.m-bottomnav__square {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-square);
+  background: var(--nav-icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fff;
+  line-height: 1;
+}
+.m-bottomnav__item--active .m-bottomnav__square {
+  background: var(--primary);
+}
+.m-bottomnav__label {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: var(--muted-2);
+}
+.m-bottomnav__item--active .m-bottomnav__label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ---------- Card ---------- */
+.m-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  line-height: 1.35;
+}
+.m-card--alert {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+}
+.m-card--unread {
+  border-left: 4px solid var(--primary);
+}
+.m-empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 12px;
+}
+
+/* ---------- Chip ---------- */
+.m-chip {
+  display: inline-block;
+  border-radius: var(--r-chip);
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.m-chip--default {
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+}
+.m-chip--green {
+  background: var(--green-tint);
+  color: var(--green-text);
+}
+.m-chip--purple {
+  background: var(--purple-tint);
+  color: var(--purple-text);
+}
+.m-chip--selected {
+  background: var(--primary);
+  color: #fff;
+}
+.m-chip--red {
+  background: var(--warn-bg);
+  color: var(--primary-dark);
+}
+
+/* ---------- Button ---------- */
+.m-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--r-btn);
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  padding: 0 12px;
+  width: 100%;
+  font-family: inherit;
+}
+.m-btn--primary {
+  background: var(--primary);
+  color: #fff;
+}
+.m-btn--primary:hover {
+  background: var(--primary-dark);
+}
+.m-btn--outline {
+  background: var(--card-bg);
+  color: var(--primary-dark);
+  border: 1px solid var(--primary);
+}
+.m-btn--outline:hover {
+  background: var(--primary-tint);
+}
+.m-btn--full {
+  width: 100%;
+}
+.m-btn:disabled {
+  background: var(--step-off);
+  color: var(--muted-2);
+  cursor: not-allowed;
+}
+.m-btn-pair {
+  display: flex;
+  gap: 6px;
+}
+.m-btn-pair > .m-btn {
+  flex: 1;
+}
+
+/* ---------- Row ---------- */
+.m-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.m-row__label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.m-row__right {
+  font-size: 12px;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ---------- Field ---------- */
+.m-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.m-field__label {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: var(--muted-2);
+}
+.m-field .m-input {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-input);
+  border-radius: var(--r-field);
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.m-field .m-input:focus {
+  border-color: var(--primary);
+}
+.m-field-row {
+  display: flex;
+  gap: 6px;
+}
+.m-field-row > .m-field {
+  flex: 1;
+}
+
+/* ---------- StatTile ---------- */
+.m-statrow {
+  display: flex;
+  gap: 6px;
+}
+.m-stattile {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-stat);
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+.m-stattile__value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  line-height: 1.1;
+}
+.m-stattile__label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* ---------- Avatar ---------- */
+.m-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-avatar);
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.m-avatar--green {
+  background: var(--green);
+}
+.m-avatar--purple {
+  background: var(--purple);
+}
+
+/* ---------- Stepper ---------- */
+.m-stepper {
+  display: flex;
+  gap: 4px;
+}
+.m-stepper__seg {
+  flex: 1;
+  text-align: center;
+  border-radius: var(--r-step);
+  padding: 5px 0;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.m-stepper__seg--on {
+  background: var(--green);
+  color: #fff;
+}
+.m-stepper__seg:not(.m-stepper__seg--on) {
+  background: var(--step-off);
+  color: var(--muted-2);
+}
+
+/* ---------- MapView ---------- */
+.m-map {
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid var(--border-input);
+  overflow: hidden;
+  background: var(--map-bg);
+}
+.m-map--full {
+  border-radius: 0;
+  border: none;
+}
+.m-map--h90 { height: 90px; }
+.m-map--h100 { height: 100px; }
+.m-map--h110 { height: 110px; }
+.m-map--h380 { height: 380px; }
+.m-map__road-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  margin-left: -20px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 48%,
+    #fff 48%,
+    #fff 52%,
+    transparent 52%,
+    transparent 100%
+  );
+}
+.m-map__road-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 36px;
+  margin-top: -18px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    #fff 45%,
+    #fff 49%,
+    transparent 49%,
+    transparent 100%
+  );
+}
+.m-map__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62%;
+  height: 75%;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--primary);
+  border-radius: 50%;
+  background: rgba(179, 38, 30, 0.07);
+}
+.m-map__pin {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--r-pin);
+  border: 2px solid #fff;
+  transform: translate(-50%, -50%);
+}
+.m-map__pin--red { background: var(--primary); }
+.m-map__pin--ink { background: var(--ink); }
+.m-map__pin--green { background: var(--green); }
+.m-map__pin--purple { background: var(--purple); }
+
+/* ---------- InventoryChart ---------- */
+.m-invchart {
+  display: flex;
+  gap: 4px;
+  padding: 0 2px;
+}
+.m-invchart__col {
+  flex: 1;
+  height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+}
+.m-invchart__units {
+  font-size: 9px;
+  color: var(--muted);
+}
+.m-invchart__bar {
+  width: 70%;
+  background: var(--primary);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+}
+.m-invchart__group {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ---------- BarChart ---------- */
+.m-barchart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.m-barchart__bars {
+  display: flex;
+  gap: 6px;
+  height: 84px;
+  align-items: flex-end;
+  padding: 4px 2px 0;
+}
+.m-barchart__col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.m-barchart__bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+}
+.m-barchart__labels {
+  display: flex;
+  gap: 6px;
+}
+.m-barchart__label {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ---------- ToggleRow ---------- */
+.m-togglerow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: inherit;
+}
+.m-togglerow__label {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ---------- LinkRow ---------- */
+.m-linkrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: inherit;
+}
+.m-linkrow__label {
+  font-size: 12px;
+  color: var(--ink);
+}
+.m-linkrow__arrow {
+  font-size: 16px;
+  color: var(--muted-2);
+}
+
+/* ---------- Section heading ---------- */
+.m-h {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 2px 0 2px;
+}
+
+/* ---------- Small text ---------- */
+.m-card small,
+.m-row small,
+.m-bottomnav small {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* ---------- Card name ---------- */
+.m-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ---------- Donation camp / list helpers ---------- */
+.m-camp-meta,
+.m-request-meta {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ---------- Login screen ---------- */
+.m-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  background: var(--page-bg);
+  padding: 50px 22px;
+  gap: 10px;
+}
+.m-login__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 700;
+}
+.m-login__title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 4px 0 0;
+}
+.m-login__tagline {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.m-role-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.m-login__links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.m-login__link {
+  font-size: 11px;
+  color: var(--primary-dark);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+/* ---------- Map legend ---------- */
+.m-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.m-legend__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.m-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
